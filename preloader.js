@@ -32,6 +32,13 @@ export class Preloader {
                     './assets/Sprites/Executioner/attacking.png',
                     './assets/Sprites/Executioner/skill1.png',
                     './assets/Sprites/Executioner/death.png'
+                ],
+                skeleton: [
+                    './assets/Sprites/Skeleton/skeleIdle.png',
+                    './assets/Sprites/Skeleton/skeleattack.png',
+                    './assets/Sprites/Skeleton/skelehit.png',
+                    './assets/Sprites/Skeleton/skeledeath.png',
+                    './assets/Sprites/Skeleton/skeleshield.png'
                 ]
             },
             images: [

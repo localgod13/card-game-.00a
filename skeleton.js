@@ -7,7 +7,7 @@ import { Enemy } from './enemy.js';
  */
 export class Skeleton extends Enemy {
     constructor(id, health) {
-        super(id, health, './assets/Sprites/Skeleton/skeleidle.png');
+        super(id, health, './assets/Sprites/Skeleton/skeleIdle.png');
         this.attackSpriteSheet = './assets/Sprites/Skeleton/skeleattack.png'; // Use attack sprite sheet
         this.hurtSpriteSheet = './assets/Sprites/Skeleton/skelehit.png'; // Using hit sprite
         this.deathSpriteSheet = './assets/Sprites/Skeleton/skeledeath.png'; // Use death sprite
