@@ -497,6 +497,29 @@ export class Game {
             // Add stats container to player side instead of player element
             playerSide.appendChild(playerElement);
             playerSide.appendChild(statsContainer);
+            // Run-in animation for level 1
+            if (this.currentLevel === 1 && (this.playerClass === 'mage' || this.playerClass === 'warrior')) {
+                playerElement.style.transition = 'none';
+                playerElement.style.transform = 'translateX(-600px)';
+                setTimeout(() => {
+                    playerElement.style.transition = 'transform 2s ease-out';
+                    this.playerCharacter.playRunAnimation();
+                    // Play running sound
+                    const runningSound = this.soundManager.sounds.get('running');
+                    if (runningSound) {
+                        runningSound.currentTime = 1;
+                        runningSound.play().catch(() => {});
+                    }
+                    playerElement.style.transform = 'translateX(0)';
+                    setTimeout(() => {
+                        this.playerCharacter.stopRunAnimation();
+                        if (runningSound) {
+                            runningSound.pause();
+                            runningSound.currentTime = 0;
+                        }
+                    }, 2000);
+                }, 50);
+            }
         }
 
         // Add fade-in animation styles if they don't exist
@@ -1934,12 +1957,28 @@ export class Game {
         if (this.playerClass === 'mage' || this.playerClass === 'warrior') {
             const playerElement = document.querySelector('.player-character');
             if (playerElement) {
-                playerElement.style.transition = 'none'; // Disable transition for instant reset
-                playerElement.style.transform = 'translateX(0)'; // Reset to original position
-                // Re-enable transition after a small delay
+                playerElement.style.transition = 'none';
+                playerElement.style.transform = 'translateX(-600px)'; // Start off-screen left
                 setTimeout(() => {
                     playerElement.style.transition = 'transform 2s ease-out';
-                }, 50);
+                    this.playerCharacter.playRunAnimation();
+                    // Play running sound
+                    const runningSound = this.soundManager.sounds.get('running');
+                    if (runningSound) {
+                        runningSound.currentTime = 1;
+                        runningSound.play().catch(() => {});
+                    }
+                    // Animate to normal position
+                    playerElement.style.transform = 'translateX(0)';
+                    // After run duration, stop run animation and running sound
+                    setTimeout(() => {
+                        this.playerCharacter.stopRunAnimation();
+                        if (runningSound) {
+                            runningSound.pause();
+                            runningSound.currentTime = 0;
+                        }
+                    }, 2000); // Match the transition duration
+                }, 50); // Allow DOM to update
             }
         }
 
@@ -2267,7 +2306,7 @@ export class Game {
             }, 4000);
         } else {
             // Fallback: just show victory screen
-            this.showVictoryScreen();
+        this.showVictoryScreen();
         }
     }
 }
