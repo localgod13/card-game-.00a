@@ -542,16 +542,29 @@ export class Game {
         // Initialize enemy characters
         const enemySide = document.querySelector('.enemy-side');
         if (enemySide) {
-            enemySide.innerHTML = '';
-            // Create enemies based on current level
-            if (this.currentLevel === 1) {
-                // Add one Executioner
+            // Clear all existing enemies from the DOM
+            while (enemySide.firstChild) {
+                enemySide.removeChild(enemySide.firstChild);
+            }
+        }
+
+        // Spawn enemies based on level with a staggered delay
+        if (this.currentLevel === 1) {
+            // Add one Executioner
+            setTimeout(() => {
                 const executioner = new Executioner(1, 100);
                 this.enemies.push(executioner);
                 const executionerElement = executioner.createEnemyElement();
                 enemySide.appendChild(executionerElement);
                 
-                // Add one Skeleton
+                // Trigger fade-in animation after a small delay
+                requestAnimationFrame(() => {
+                    executionerElement.classList.add('fade-in');
+                });
+            }, 0);
+
+            // Add one Skeleton after a delay
+            setTimeout(() => {
                 const skeleton = new Skeleton(2, 80);
                 this.enemies.push(skeleton);
                 const skeletonElement = skeleton.createEnemyElement();
@@ -559,19 +572,21 @@ export class Game {
                 
                 // Trigger fade-in animation after a small delay
                 requestAnimationFrame(() => {
-                    executionerElement.classList.add('fade-in');
                     skeletonElement.classList.add('fade-in');
                 });
-            } else if (this.currentLevel >= 4) {
-                // No enemies for level 4 or higher (including level 5)
-                if (this.currentLevel === 4) {
-                    this.addContinueButton();
-                } else {
-                    this.removeContinueButton();
-                }
+            }, 800);
+        } else if (this.currentLevel >= 4) {
+            // No enemies for level 4 or higher (including level 5)
+            if (this.currentLevel === 4) {
+                this.addContinueButton();
             } else {
-                // For other levels, keep existing behavior
-                for (let i = 0; i < this.currentLevel; i++) {
+                this.removeContinueButton();
+            }
+        } else {
+            // For other levels, spawn enemies based on level number
+            const enemyCount = this.currentLevel === 2 ? 2 : 3; // 2 enemies for level 2, 3 for level 3
+            for (let i = 0; i < enemyCount; i++) {
+                setTimeout(() => {
                     const enemy = new Executioner(i + 1, 100);
                     this.enemies.push(enemy);
                     const enemyElement = enemy.createEnemyElement();
@@ -581,7 +596,7 @@ export class Game {
                     requestAnimationFrame(() => {
                         enemyElement.classList.add('fade-in');
                     });
-                }
+                }, i * 800);
             }
         }
 
@@ -1954,8 +1969,20 @@ export class Game {
     }
 
     startNextLevel() {
+        // Clean up existing enemies
+        this.enemies.forEach(enemy => {
+            if (enemy.animationInterval) {
+                clearInterval(enemy.animationInterval);
+            }
+            if (enemy.element && enemy.element.parentNode) {
+                enemy.element.parentNode.removeChild(enemy.element);
+            }
+        });
+        this.enemies = []; // Clear the enemies array
+
         // Re-initialize the game for the new level
         this.initializeGame();
+
         // Run-in animation for mage/warrior after player element is created
         if (this.playerClass === 'mage' || this.playerClass === 'warrior') {
             setTimeout(() => {
@@ -2000,78 +2027,6 @@ export class Game {
                 playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
             } else {
                 playfield.style.backgroundImage = "";
-            }
-        }
-     
-        const enemySide = document.querySelector('.enemy-side');
-        if (enemySide) {
-            enemySide.innerHTML = '';
-        }
-
-        // Add fade-in animation styles if they don't exist
-        if (!document.getElementById('enemy-fade-styles')) {
-            const styleSheet = document.createElement('style');
-            styleSheet.id = 'enemy-fade-styles';
-            styleSheet.textContent = `
-                .enemy-character {
-                    opacity: 0;
-                    transition: opacity 1s ease-out;
-                }
-                .enemy-character.fade-in {
-                    opacity: 1;
-                }
-            `;
-            document.head.appendChild(styleSheet);
-        }
-
-        // Spawn enemies based on level with a staggered delay
-        if (this.currentLevel === 1) {
-            // Add one Executioner
-            setTimeout(() => {
-                const executioner = new Executioner(1, 100);
-                this.enemies.push(executioner);
-                const executionerElement = executioner.createEnemyElement();
-                enemySide.appendChild(executionerElement);
-                
-                // Trigger fade-in animation after a small delay
-                requestAnimationFrame(() => {
-                    executionerElement.classList.add('fade-in');
-                });
-            }, 0);
-
-            // Add one Skeleton after a delay
-            setTimeout(() => {
-                const skeleton = new Skeleton(2, 80);
-                this.enemies.push(skeleton);
-                const skeletonElement = skeleton.createEnemyElement();
-                enemySide.appendChild(skeletonElement);
-                
-                // Trigger fade-in animation after a small delay
-                requestAnimationFrame(() => {
-                    skeletonElement.classList.add('fade-in');
-                });
-            }, 800);
-        } else if (this.currentLevel >= 4) {
-            // No enemies for level 4 or higher (including level 5)
-            if (this.currentLevel === 4) {
-                this.addContinueButton();
-            } else {
-                this.removeContinueButton();
-            }
-        } else {
-            // For other levels, keep existing behavior
-            for (let i = 0; i < this.currentLevel; i++) {
-                setTimeout(() => {
-                    const enemy = new Executioner(i + 1, 100);
-                    this.enemies.push(enemy);
-                    const enemyElement = enemy.createEnemyElement();
-                    enemySide.appendChild(enemyElement);
-                    
-                    // Trigger fade-in animation after a small delay
-                    requestAnimationFrame(() => {
-                        enemyElement.classList.add('fade-in');
-                    });
-                }, i * 800);
             }
         }
 
