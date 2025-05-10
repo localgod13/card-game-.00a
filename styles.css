@@ -1731,4 +1731,104 @@ body {
     font-size: 12px;
     border-radius: 3px;
     z-index: 1000;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 700px) {
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    font-size: 16px;
+  }
+  #game-container {
+    width: 100vw;
+    min-height: 100vh;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  .game-scene {
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+  }
+  .playfield {
+    width: 100vw;
+    height: 30vh;
+    min-height: 180px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    background-size: cover !important;
+  }
+  .player-side, .enemy-side {
+    width: 50vw;
+    height: 100%;
+    min-width: 120px;
+    min-height: 120px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+  }
+  .player-sprite, .enemy-sprite {
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 60px;
+    min-height: 60px;
+  }
+  .game-area {
+    width: 100vw;
+    min-height: 30vh;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 2vw;
+  }
+  .player-hand {
+    width: 100vw;
+    min-height: 100px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .card {
+    width: 60px !important;
+    height: 90px !important;
+    font-size: 0.9em;
+  }
+  .pile {
+    width: 40px;
+    height: 60px;
+    font-size: 0.8em;
+  }
+  .game-controls {
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .end-turn-btn {
+    font-size: 1.1em;
+    padding: 10px 24px;
+    border-radius: 12px;
+  }
+  .resource-label, .defense-text, .health-text {
+    font-size: 0.9em;
+  }
+  .pause-menu, .game-over-modal, .level-transition-overlay, .map-overlay {
+    width: 95vw !important;
+    min-width: 0 !important;
+    left: 2.5vw !important;
+    font-size: 1em !important;
+  }
 } 

@@ -358,6 +358,7 @@ export class Game {
         this.soundManager.loadSound('skeledead', './assets/Audio/skeledead.mp3');
         this.soundManager.loadSound('forestnar', './assets/Audio/forestnar.mp3');
         this.soundManager.loadSound('forestmusic', './assets/Audio/forestmusic.mp3');
+        this.soundManager.loadSound('warforest', './assets/Audio/warforest.mp3');
         this.currentLevel = 1;
         this.maxLevel = 5;
         this.isLevelTransitioning = false;
@@ -1953,33 +1954,35 @@ export class Game {
     }
 
     startNextLevel() {
-        // Reset character position if player is a mage or warrior
+        // Re-initialize the game for the new level
+        this.initializeGame();
+        // Run-in animation for mage/warrior after player element is created
         if (this.playerClass === 'mage' || this.playerClass === 'warrior') {
-            const playerElement = document.querySelector('.player-character');
-            if (playerElement) {
-                playerElement.style.transition = 'none';
-                playerElement.style.transform = 'translateX(-600px)'; // Start off-screen left
-                setTimeout(() => {
-                    playerElement.style.transition = 'transform 2s ease-out';
-                    this.playerCharacter.playRunAnimation();
-                    // Play running sound
-                    const runningSound = this.soundManager.sounds.get('running');
-                    if (runningSound) {
-                        runningSound.currentTime = 1;
-                        runningSound.play().catch(() => {});
-                    }
-                    // Animate to normal position
-                    playerElement.style.transform = 'translateX(0)';
-                    // After run duration, stop run animation and running sound
+            setTimeout(() => {
+                const playerElement = document.querySelector('.player-character');
+                if (playerElement) {
+                    playerElement.style.transition = 'none';
+                    playerElement.style.transform = 'translateX(-600px)';
                     setTimeout(() => {
-                        this.playerCharacter.stopRunAnimation();
+                        playerElement.style.transition = 'transform 2s ease-out';
+                        this.playerCharacter.playRunAnimation();
+                        // Play running sound
+                        const runningSound = this.soundManager.sounds.get('running');
                         if (runningSound) {
-                            runningSound.pause();
-                            runningSound.currentTime = 0;
+                            runningSound.currentTime = 1;
+                            runningSound.play().catch(() => {});
                         }
-                    }, 2000); // Match the transition duration
-                }, 50); // Allow DOM to update
-            }
+                        playerElement.style.transform = 'translateX(0)';
+                        setTimeout(() => {
+                            this.playerCharacter.stopRunAnimation();
+                            if (runningSound) {
+                                runningSound.pause();
+                                runningSound.currentTime = 0;
+                            }
+                        }, 2000);
+                    }, 50);
+                }
+            }, 50); // Ensure DOM is ready
         }
 
         // Set playfield background based on level
@@ -2085,7 +2088,11 @@ export class Game {
 
         // Play forestnar.mp3 narration when reaching level 5
         if (this.currentLevel === 5) {
-            this.soundManager.playSound('forestnar');
+            if (this.playerClass === 'mage') {
+                this.soundManager.playSound('forestnar');
+            } else if (this.playerClass === 'warrior') {
+                this.soundManager.playSound('warforest');
+            }
 
             // Stop previous level music
             if (this.levelMusic) {
@@ -2116,10 +2123,10 @@ export class Game {
                 document.addEventListener('click', startMusic);
             });
 
-            // Show 'Continue Deeper' button after forestnar.mp3 finishes
-            const forestnarAudio = this.soundManager.sounds.get('forestnar');
-            if (forestnarAudio) {
-                forestnarAudio.onended = () => {
+            // Show 'Continue Deeper' button after narration finishes
+            const forestAudio = this.playerClass === 'mage' ? this.soundManager.sounds.get('forestnar') : this.soundManager.sounds.get('warforest');
+            if (forestAudio) {
+                forestAudio.onended = () => {
                     this.addContinueDeeperButton();
                 };
             } else {
@@ -2178,7 +2185,7 @@ export class Game {
 
     handleContinueLevel4() {
         this.removeContinueButton();
-        // Player runs off screen like previous levels, then go to level 5
+        // Player runs off screen like previous levels, then go to map screen
         const playerElement = document.querySelector('.player-character');
         if (playerElement) {
             this.playerCharacter.playRunAnimation();
@@ -2207,11 +2214,11 @@ export class Game {
                     runningSound.pause();
                     runningSound.currentTime = 0;
                 }
-                this.currentLevel = 5;
-                this.startNextLevel();
+                // Instead of going to level 5, show the map screen
+                this.showMapScreen();
             }, 4000);
         } else {
-            // Fallback: just go to next level
+            // Fallback: just go to map screen
             if (this.levelMusic) {
                 const fadeOut = setInterval(() => {
                     if (this.levelMusic.volume > 0.05) {
@@ -2223,8 +2230,8 @@ export class Game {
                     }
                 }, 100);
             }
-            this.currentLevel = 5;
-            this.startNextLevel();
+            // Instead of going to level 5, show the map screen
+            this.showMapScreen();
         }
     }
 
@@ -2308,6 +2315,148 @@ export class Game {
             // Fallback: just show victory screen
         this.showVictoryScreen();
         }
+    }
+
+    showMapScreen() {
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'map-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100vw';
+        overlay.style.height = '100vh';
+        overlay.style.background = 'rgba(0,0,0,0.85)';
+        overlay.style.display = 'flex';
+        overlay.style.justifyContent = 'center';
+        overlay.style.alignItems = 'center';
+        overlay.style.zIndex = '2000';
+
+        // Map container
+        const mapContainer = document.createElement('div');
+        mapContainer.style.position = 'relative';
+        mapContainer.style.width = '900px';
+        mapContainer.style.height = '400px';
+        mapContainer.style.display = 'flex';
+        mapContainer.style.alignItems = 'center';
+        mapContainer.style.justifyContent = 'space-between';
+
+        // gy.png (left)
+        const gyImg = document.createElement('img');
+        gyImg.src = './assets/Images/gy.png';
+        gyImg.style.width = '250px';
+        gyImg.style.height = '250px';
+        gyImg.style.borderRadius = '16px';
+        gyImg.style.boxShadow = '0 0 24px #000';
+        gyImg.style.position = 'absolute';
+        gyImg.style.left = '0';
+        gyImg.style.top = '50%';
+        gyImg.style.transform = 'translateY(-50%)';
+
+        // forest2.png (right)
+        const forestImg = document.createElement('img');
+        forestImg.src = './assets/Images/forest2.png';
+        forestImg.style.width = '250px';
+        forestImg.style.height = '250px';
+        forestImg.style.borderRadius = '16px';
+        forestImg.style.boxShadow = '0 0 24px #000';
+        forestImg.style.position = 'absolute';
+        forestImg.style.right = '0';
+        forestImg.style.top = '50%';
+        forestImg.style.transform = 'translateY(-50%)';
+        forestImg.style.cursor = 'pointer';
+
+        // Dotted line
+        const line = document.createElement('div');
+        line.style.position = 'absolute';
+        line.style.left = '125px';
+        line.style.top = '50%';
+        line.style.width = '650px';
+        line.style.height = '0';
+        line.style.borderTop = '4px dotted #fff';
+        line.style.transform = 'translateY(-50%)';
+        line.style.zIndex = '1';
+
+        // Player sprite (idle)
+        const playerSprite = this.playerCharacter.createPlayerElement();
+        playerSprite.style.position = 'absolute';
+        playerSprite.style.left = '60px';
+        playerSprite.style.top = '50%';
+        playerSprite.style.transform = 'translateY(-50%)';
+        playerSprite.style.zIndex = '2';
+
+        // Remove shield aura and stats for map
+        const aura = playerSprite.querySelector('.shield-aura');
+        if (aura) aura.remove();
+        const stats = playerSprite.querySelector('.character-stats');
+        if (stats) stats.remove();
+
+        // Add elements to map container
+        mapContainer.appendChild(gyImg);
+        mapContainer.appendChild(forestImg);
+        mapContainer.appendChild(line);
+        mapContainer.appendChild(playerSprite);
+        overlay.appendChild(mapContainer);
+        document.body.appendChild(overlay);
+
+        // Animate player to forest2.png on click
+        forestImg.addEventListener('click', () => {
+            forestImg.style.filter = 'brightness(1.2) drop-shadow(0 0 16px #39ff14)';
+            // Run animation
+            this.playerCharacter.playRunAnimation();
+            const runningSound = this.soundManager.sounds.get('running');
+            if (runningSound) {
+                runningSound.currentTime = 1;
+                runningSound.play().catch(() => {});
+            }
+            // Animate left to right
+            playerSprite.style.transition = 'left 2s linear';
+            playerSprite.style.left = '590px'; // Move to forest2.png
+            // After run duration, stop run animation and show Enter button
+            setTimeout(() => {
+                this.playerCharacter.stopRunAnimation();
+                if (runningSound) {
+                    runningSound.pause();
+                    runningSound.currentTime = 0;
+                }
+                // Show Enter button
+                const enterBtn = document.createElement('button');
+                enterBtn.textContent = 'Enter';
+                enterBtn.style.position = 'absolute';
+                enterBtn.style.left = '690px';
+                enterBtn.style.top = '30%';
+                enterBtn.style.transform = 'translateY(-50%)';
+                enterBtn.style.padding = '16px 40px';
+                enterBtn.style.fontSize = '1.5em';
+                enterBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+                enterBtn.style.color = '#b6ffb6';
+                enterBtn.style.border = '2px solid #39ff14';
+                enterBtn.style.borderRadius = '16px';
+                enterBtn.style.cursor = 'pointer';
+                enterBtn.style.zIndex = '10';
+                enterBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+                enterBtn.style.fontFamily = '"Cinzel", "Times New Roman", serif';
+                enterBtn.style.letterSpacing = '1px';
+                enterBtn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+                enterBtn.style.transition = 'box-shadow 0.2s, background 0.2s, color 0.2s';
+                enterBtn.addEventListener('mouseenter', () => {
+                    enterBtn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+                    enterBtn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
+                    enterBtn.style.color = '#eaffea';
+                });
+                enterBtn.addEventListener('mouseleave', () => {
+                    enterBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+                    enterBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+                    enterBtn.style.color = '#b6ffb6';
+                });
+                enterBtn.addEventListener('click', () => {
+                    overlay.remove();
+                    this.currentLevel = 5;
+                    this.startNextLevel();
+                });
+                mapContainer.appendChild(enterBtn);
+            }, 2000);
+        });
     }
 }
 
