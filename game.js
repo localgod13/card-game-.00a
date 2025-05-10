@@ -2,6 +2,7 @@
 import { Enemy } from './enemy.js';
 import { Executioner } from './executioner.js';
 import { FlyingDemon } from './flyingDemon.js';
+import { Skeleton } from './skeleton.js';
 import { CardManager } from './cardManager.js';
 import { DebugMenu } from './debugMenu.js';
 import { Warrior } from './warrior.js';
@@ -353,8 +354,12 @@ export class Game {
         this.soundManager.loadSound('nextRound1', './assets/Audio/nextround.mp3');
         this.soundManager.loadSound('nextRound2', './assets/Audio/nextround2.mp3');
         this.soundManager.loadSound('running', './assets/Audio/running.mp3');
+        this.soundManager.loadSound('skelshield', './assets/Audio/skelshield.mp3');
+        this.soundManager.loadSound('skeledead', './assets/Audio/skeledead.mp3');
+        this.soundManager.loadSound('forestnar', './assets/Audio/forestnar.mp3');
+        this.soundManager.loadSound('forestmusic', './assets/Audio/forestmusic.mp3');
         this.currentLevel = 1;
-        this.maxLevel = 3;
+        this.maxLevel = 5;
         this.isLevelTransitioning = false;
 
         // Add keydown event listener for X key kill functionality
@@ -515,16 +520,44 @@ export class Game {
         if (enemySide) {
             enemySide.innerHTML = '';
             // Create enemies based on current level
-            for (let i = 0; i < this.currentLevel; i++) {
-                const enemy = new Executioner(i + 1, 100);
-                this.enemies.push(enemy);
-                const enemyElement = enemy.createEnemyElement();
-                enemySide.appendChild(enemyElement);
+            if (this.currentLevel === 1) {
+                // Add one Executioner
+                const executioner = new Executioner(1, 100);
+                this.enemies.push(executioner);
+                const executionerElement = executioner.createEnemyElement();
+                enemySide.appendChild(executionerElement);
+                
+                // Add one Skeleton
+                const skeleton = new Skeleton(2, 80);
+                this.enemies.push(skeleton);
+                const skeletonElement = skeleton.createEnemyElement();
+                enemySide.appendChild(skeletonElement);
                 
                 // Trigger fade-in animation after a small delay
                 requestAnimationFrame(() => {
-                    enemyElement.classList.add('fade-in');
+                    executionerElement.classList.add('fade-in');
+                    skeletonElement.classList.add('fade-in');
                 });
+            } else if (this.currentLevel >= 4) {
+                // No enemies for level 4 or higher (including level 5)
+                if (this.currentLevel === 4) {
+                    this.addContinueButton();
+                } else {
+                    this.removeContinueButton();
+                }
+            } else {
+                // For other levels, keep existing behavior
+                for (let i = 0; i < this.currentLevel; i++) {
+                    const enemy = new Executioner(i + 1, 100);
+                    this.enemies.push(enemy);
+                    const enemyElement = enemy.createEnemyElement();
+                    enemySide.appendChild(enemyElement);
+                    
+                    // Trigger fade-in animation after a small delay
+                    requestAnimationFrame(() => {
+                        enemyElement.classList.add('fade-in');
+                    });
+                }
             }
         }
 
@@ -540,6 +573,31 @@ export class Game {
 
         // Create targeting arrow
         this.createTargetingArrow();
+
+        // Set playfield background based on level
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            if (this.currentLevel === 1) {
+                playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
+            } else if (this.currentLevel === 2) {
+                playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
+            } else if (this.currentLevel === 3) {
+                playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
+            } else if (this.currentLevel === 4) {
+                playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
+            } else if (this.currentLevel === 5) {
+                playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
+            } else {
+                playfield.style.backgroundImage = "";
+            }
+        }
+
+        // Add continue button for level 4
+        if (this.currentLevel === 4) {
+            this.addContinueButton();
+        } else {
+            this.removeContinueButton();
+        }
     }
 
     createTargetingArrow() {
@@ -626,9 +684,13 @@ export class Game {
                     // Calculate hitbox dimensions (40% of sprite size)
                     const hitboxWidth = rect.width * 0.4;
                     const hitboxHeight = rect.height * 0.4;
-                    // Calculate hitbox position (centered on sprite)
+                    
+                    // Get the enemy's vertical offset from its style
+                    const verticalOffset = parseInt(spriteElement.style.top) || 0;
+                    
+                    // Calculate hitbox position (centered on sprite, accounting for vertical offset)
                     const hitboxLeft = rect.left + (rect.width - hitboxWidth) / 2;
-                    const hitboxTop = rect.top + (rect.height - hitboxHeight) / 2;
+                    const hitboxTop = rect.top + (rect.height - hitboxHeight) / 2 + verticalOffset;
                     
                     // Check if mouse is within hitbox
                     const isInHitbox = mouseX >= hitboxLeft && 
@@ -954,6 +1016,11 @@ export class Game {
             // Wait for attack animation to complete before applying damage
             setTimeout(() => {
                 const isDead = enemy.takeDamage(cardData.attack);
+                // Play skeledead.mp3 if a Skeleton dies
+                if (isDead && enemy.constructor.name === 'Skeleton') {
+                    console.log('Playing skeledead.mp3');
+                    this.soundManager.playSound('skeledead');
+                }
                 if (isDead) {
                     enemy.destroy();
                     this.enemies = this.enemies.filter(e => e.id !== enemy.id);
@@ -979,7 +1046,7 @@ export class Game {
     }
 
     updateHealthBars() {
-        const playerHealthBar = document.querySelector('.player-character .health-bar-fill');
+        const playerHealthBar = document.querySelector('.health-bar-fill');
         if (playerHealthBar) {
             playerHealthBar.style.width = `${this.playerHealth}%`;
         }
@@ -1081,9 +1148,13 @@ export class Game {
         const startX = sourceRect.left + sourceRect.width / 2;
         const startY = sourceRect.top + sourceRect.height / 2;
         
-        // Calculate end position (center of enemy)
+        // Get the enemy's vertical offset
+        const spriteElement = targetElement.querySelector('.enemy-sprite');
+        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
+        
+        // Calculate end position (center of enemy, accounting for vertical offset)
         const endX = targetRect.left + targetRect.width / 2;
-        const endY = targetRect.top + targetRect.height / 2;
+        const endY = targetRect.top + targetRect.height / 2 + verticalOffset;
 
         // Create WebGL fireball effect
         this.effectRenderer.createFireballEffect(startX, startY, endX, endY);
@@ -1180,13 +1251,17 @@ export class Game {
                     // Calculate the center position of all enemies
                     let totalX = 0;
                     let totalY = 0;
+                    let totalOffset = 0;
                     this.enemies.forEach(enemy => {
                         const enemyRect = enemy.element.getBoundingClientRect();
+                        const spriteElement = enemy.element.querySelector('.enemy-sprite');
+                        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
                         totalX += enemyRect.left + enemyRect.width / 2;
                         totalY += enemyRect.top + enemyRect.height / 2;
+                        totalOffset += verticalOffset;
                     });
                     const centerX = totalX / this.enemies.length;
-                    const centerY = totalY / this.enemies.length;
+                    const centerY = (totalY + totalOffset) / this.enemies.length;
                     
                     // Create meteor effect with sound callback
                     this.effectRenderer.createMeteorEffect(centerX, centerY, () => {
@@ -1204,8 +1279,13 @@ export class Game {
                         const playerRect = playerElement.getBoundingClientRect();
                         const startX = playerRect.left + playerRect.width / 2;
                         const startY = playerRect.top + playerRect.height / 2;
+                        
+                        // Get the enemy's vertical offset
+                        const spriteElement = enemyElement.querySelector('.enemy-sprite');
+                        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
+                        
                         const endX = enemyRect.left + enemyRect.width / 2;
-                        const endY = enemyRect.top + enemyRect.height / 2;
+                        const endY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
                         
                         // Play blaze bolt sound effect
                         const blazeBoltSound = new Audio('./assets/Audio/molten.mp3');
@@ -1231,14 +1311,22 @@ export class Game {
                 } else if (attack.cardId === 'molten_strike') {
                     // Get enemy position for molten strike effect
                     const enemyRect = enemyElement.getBoundingClientRect();
+                    // Get the enemy's vertical offset
+                    const spriteElement = enemyElement.querySelector('.enemy-sprite');
+                    const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
                     const targetX = enemyRect.left + enemyRect.width / 2;
-                    const targetY = enemyRect.top + enemyRect.height / 2;
+                    const targetY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
                     
                     // Create molten strike effect
                     this.effectRenderer.createMoltenStrikeEffect(targetX, targetY);
                     // Wait for molten strike animation to complete
                     await new Promise(resolve => setTimeout(resolve, 800));
                 } else if (attack.cardId === 'pyroclasm') {
+                    console.log('Triggering pyroclasm effect');
+                    
+                    // Play pyroclasm sound effect
+                    const pyroclasmSound = new Audio('./assets/Audio/pyo.mp3');
+                    pyroclasmSound.volume = this.sfxVolume;
                     // Get player position for pyroclasm effect
                     const playerElement = document.querySelector('.player-character');
                     if (playerElement) {
@@ -1280,8 +1368,15 @@ export class Game {
                     this.enemies.forEach(enemy => {
                         const enemyElement = enemy.element;
                         const enemyRect = enemyElement.getBoundingClientRect();
-                        const targetX = enemyRect.left + enemyRect.width / 2;
-                        const targetY = enemyRect.top + enemyRect.height / 2;
+                        const spriteElement = enemyElement.querySelector('.enemy-sprite');
+                        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
+                        let targetX = enemyRect.left + enemyRect.width / 2;
+                        let targetY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
+
+                        // Move heat wave up for skeletons so it's not off the playfield
+                        if (enemy.constructor.name === 'Skeleton') {
+                            targetY -= 50; // Adjust this value as needed
+                        }
                         
                         console.log('Heat wave target position:', targetX, targetY);
                         
@@ -1294,8 +1389,11 @@ export class Game {
                 } else if (attack.cardId === 'flame_burst') {
                     // Get enemy position for flame burst effect
                     const enemyRect = enemyElement.getBoundingClientRect();
+                    // Get the enemy's vertical offset
+                    const spriteElement = enemyElement.querySelector('.enemy-sprite');
+                    const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
                     const targetX = enemyRect.left + enemyRect.width / 2;
-                    const targetY = enemyRect.top + enemyRect.height / 2;
+                    const targetY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
                     
                     // Play flame burst sound effect
                     const flameBurstSound = new Audio('./assets/Audio/fire1.mp3');
@@ -1315,6 +1413,11 @@ export class Game {
                 // Apply damage to all enemies for heat wave, pyroclasm, meteor strike, and inferno
                 for (const enemy of this.enemies) {
                     const isDead = enemy.takeDamage(cardData.attack);
+                    // Play skeledead.mp3 if a Skeleton dies
+                    if (isDead && enemy.constructor.name === 'Skeleton') {
+                        console.log('Playing skeledead.mp3');
+                        this.soundManager.playSound('skeledead');
+                    }
                     if (isDead) {
                         enemy.destroy();
                         this.enemies = this.enemies.filter(e => e.id !== enemy.id);
@@ -1326,6 +1429,11 @@ export class Game {
                 const enemy = this.enemies.find(e => e.id === attack.targetEnemy.id);
                 if (enemy) {
                     const isDead = enemy.takeDamage(cardData.attack);
+                    // Play skeledead.mp3 if a Skeleton dies
+                    if (isDead && enemy.constructor.name === 'Skeleton') {
+                        console.log('Playing skeledead.mp3');
+                        this.soundManager.playSound('skeledead');
+                    }
                     if (isDead) {
                         enemy.destroy();
                         this.enemies = this.enemies.filter(e => e.id !== enemy.id);
@@ -1374,6 +1482,20 @@ export class Game {
                 const handleAttackFrame = (event) => {
                     if (event.detail.enemyId === attackingEnemy.id) {
                         this.soundManager.playSound('axeHit');
+                        this.applyEnemyDamage(attackingEnemy, damage);
+                    }
+                };
+
+                document.addEventListener('enemyAttackFrame', handleAttackFrame);
+
+                setTimeout(() => {
+                    document.removeEventListener('enemyAttackFrame', handleAttackFrame);
+                    currentEnemyIndex++;
+                    processNextEnemy();
+                }, animationDuration);
+            } else if (attackingEnemy.constructor.name === 'Skeleton') {
+                const handleAttackFrame = (event) => {
+                    if (event.detail.enemyId === attackingEnemy.id) {
                         this.applyEnemyDamage(attackingEnemy, damage);
                     }
                 };
@@ -1544,7 +1666,8 @@ export class Game {
             { label: 'Add to Hand', action: () => this.addCardToHand() },
             { label: 'Draw Card', action: () => this.drawCard() },
             { label: 'End Turn', action: () => this.endTurn() },
-            { label: 'Toggle AI', action: () => this.toggleAI() }
+            { label: 'Toggle AI', action: () => this.toggleAI() },
+            { label: 'Skip Level', action: () => this.skipLevel() },
         ];
 
         controls.forEach(control => {
@@ -1819,6 +1942,24 @@ export class Game {
                 }, 50);
             }
         }
+
+        // Set playfield background based on level
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            if (this.currentLevel === 1) {
+                playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
+            } else if (this.currentLevel === 2) {
+                playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
+            } else if (this.currentLevel === 3) {
+                playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
+            } else if (this.currentLevel === 4) {
+                playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
+            } else if (this.currentLevel === 5) {
+                playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
+            } else {
+                playfield.style.backgroundImage = "";
+            }
+        }
      
         const enemySide = document.querySelector('.enemy-side');
         if (enemySide) {
@@ -1842,18 +1983,54 @@ export class Game {
         }
 
         // Spawn enemies based on level with a staggered delay
-        for (let i = 0; i < this.currentLevel; i++) {
+        if (this.currentLevel === 1) {
+            // Add one Executioner
             setTimeout(() => {
-                const enemy = new Executioner(i + 1, 100);
-                this.enemies.push(enemy);
-                const enemyElement = enemy.createEnemyElement();
-                enemySide.appendChild(enemyElement);
+                const executioner = new Executioner(1, 100);
+                this.enemies.push(executioner);
+                const executionerElement = executioner.createEnemyElement();
+                enemySide.appendChild(executionerElement);
                 
                 // Trigger fade-in animation after a small delay
                 requestAnimationFrame(() => {
-                    enemyElement.classList.add('fade-in');
+                    executionerElement.classList.add('fade-in');
                 });
-            }, i * 800); // Keep the staggered delay for dramatic effect
+            }, 0);
+
+            // Add one Skeleton after a delay
+            setTimeout(() => {
+                const skeleton = new Skeleton(2, 80);
+                this.enemies.push(skeleton);
+                const skeletonElement = skeleton.createEnemyElement();
+                enemySide.appendChild(skeletonElement);
+                
+                // Trigger fade-in animation after a small delay
+                requestAnimationFrame(() => {
+                    skeletonElement.classList.add('fade-in');
+                });
+            }, 800);
+        } else if (this.currentLevel >= 4) {
+            // No enemies for level 4 or higher (including level 5)
+            if (this.currentLevel === 4) {
+                this.addContinueButton();
+            } else {
+                this.removeContinueButton();
+            }
+        } else {
+            // For other levels, keep existing behavior
+            for (let i = 0; i < this.currentLevel; i++) {
+                setTimeout(() => {
+                    const enemy = new Executioner(i + 1, 100);
+                    this.enemies.push(enemy);
+                    const enemyElement = enemy.createEnemyElement();
+                    enemySide.appendChild(enemyElement);
+                    
+                    // Trigger fade-in animation after a small delay
+                    requestAnimationFrame(() => {
+                        enemyElement.classList.add('fade-in');
+                    });
+                }, i * 800);
+            }
         }
 
         // Reset player's turn after all enemies are spawned
@@ -1866,6 +2043,232 @@ export class Game {
                 gameScene.style.pointerEvents = 'auto';
             }
         }, this.currentLevel * 800 + 1000);
+
+        // Play forestnar.mp3 narration when reaching level 5
+        if (this.currentLevel === 5) {
+            this.soundManager.playSound('forestnar');
+
+            // Stop previous level music
+            if (this.levelMusic) {
+                this.levelMusic.pause();
+                this.levelMusic.currentTime = 0;
+            }
+            // Start forestmusic.mp3 as new background music
+            this.levelMusic = new Audio('./assets/Audio/forestmusic.mp3');
+            this.levelMusic.loop = true;
+            this.levelMusic.volume = 0;
+            this.levelMusic.play().then(() => {
+                // Fade in music
+                const targetVolume = this.musicVolume || 0.5;
+                const fadeIn = setInterval(() => {
+                    if (this.levelMusic.volume < targetVolume - 0.05) {
+                        this.levelMusic.volume += 0.05;
+                    } else {
+                        this.levelMusic.volume = targetVolume;
+                        clearInterval(fadeIn);
+                    }
+                }, 100);
+            }).catch(error => {
+                console.log('Autoplay prevented:', error);
+                const startMusic = () => {
+                    this.levelMusic.play();
+                    document.removeEventListener('click', startMusic);
+                };
+                document.addEventListener('click', startMusic);
+            });
+
+            // Show 'Continue Deeper' button after forestnar.mp3 finishes
+            const forestnarAudio = this.soundManager.sounds.get('forestnar');
+            if (forestnarAudio) {
+                forestnarAudio.onended = () => {
+                    this.addContinueDeeperButton();
+                };
+            } else {
+                // Fallback: show after 10 seconds if audio not found
+                setTimeout(() => this.addContinueDeeperButton(), 10000);
+            }
+        }
+    }
+
+    addContinueButton() {
+        this.removeContinueButton();
+        const btn = document.createElement('button');
+        btn.className = 'continue-btn';
+        btn.textContent = 'Continue to the Forest';
+        btn.style.position = 'absolute';
+        btn.style.top = '50%';
+        btn.style.transform = 'translateY(-50%)';
+        btn.style.right = '40px';
+        btn.style.zIndex = '10';
+        btn.style.padding = '20px 40px';
+        btn.style.fontSize = '1.5em';
+        btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+        btn.style.color = '#b6ffb6';
+        btn.style.border = '2px solid #39ff14';
+        btn.style.borderRadius = '16px';
+        btn.style.cursor = 'pointer';
+        btn.style.zIndex = '10';
+        btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+        btn.style.fontFamily = '"Cinzel", "Times New Roman", serif';
+        btn.style.letterSpacing = '1px';
+        btn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        btn.style.transition = 'box-shadow 0.2s, background 0.2s, color 0.2s';
+        btn.onmouseenter = () => {
+            btn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+            btn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
+            btn.style.color = '#eaffea';
+        };
+        btn.onmouseleave = () => {
+            btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+            btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+            btn.style.color = '#b6ffb6';
+        };
+        btn.addEventListener('click', () => this.handleContinueLevel4());
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            playfield.appendChild(btn);
+        } else {
+            document.body.appendChild(btn);
+        }
+    }
+
+    removeContinueButton() {
+        const btn = document.querySelector('.continue-btn');
+        if (btn) btn.remove();
+    }
+
+    handleContinueLevel4() {
+        this.removeContinueButton();
+        // Player runs off screen like previous levels, then go to level 5
+        const playerElement = document.querySelector('.player-character');
+        if (playerElement) {
+            this.playerCharacter.playRunAnimation();
+            const runningSound = this.soundManager.sounds.get('running');
+            if (runningSound) {
+                runningSound.currentTime = 1;
+                runningSound.play().catch(error => console.log('Error playing running sound:', error));
+            }
+            // Fade out current background music
+            if (this.levelMusic) {
+                const fadeOut = setInterval(() => {
+                    if (this.levelMusic.volume > 0.05) {
+                        this.levelMusic.volume -= 0.05;
+                    } else {
+                        this.levelMusic.volume = 0;
+                        this.levelMusic.pause();
+                        clearInterval(fadeOut);
+                    }
+                }, 100);
+            }
+            playerElement.style.transition = 'transform 4s ease-out';
+            playerElement.style.transform = 'translateX(1200px)';
+            setTimeout(() => {
+                this.playerCharacter.stopRunAnimation();
+                if (runningSound) {
+                    runningSound.pause();
+                    runningSound.currentTime = 0;
+                }
+                this.currentLevel = 5;
+                this.startNextLevel();
+            }, 4000);
+        } else {
+            // Fallback: just go to next level
+            if (this.levelMusic) {
+                const fadeOut = setInterval(() => {
+                    if (this.levelMusic.volume > 0.05) {
+                        this.levelMusic.volume -= 0.05;
+                    } else {
+                        this.levelMusic.volume = 0;
+                        this.levelMusic.pause();
+                        clearInterval(fadeOut);
+                    }
+                }, 100);
+            }
+            this.currentLevel = 5;
+            this.startNextLevel();
+        }
+    }
+
+    skipLevel() {
+        if (this.currentLevel < this.maxLevel) {
+            this.currentLevel++;
+            this.startNextLevel();
+        } else {
+            this.showVictoryScreen();
+        }
+    }
+
+    addContinueDeeperButton() {
+        this.removeContinueDeeperButton();
+        const btn = document.createElement('button');
+        btn.className = 'continue-deeper-btn';
+        btn.textContent = 'Continue Deeper';
+        btn.style.position = 'absolute';
+        btn.style.top = '50%';
+        btn.style.right = '40px';
+        btn.style.transform = 'translateY(-50%)';
+        btn.style.zIndex = '10';
+        btn.style.padding = '20px 40px';
+        btn.style.fontSize = '1.5em';
+        btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+        btn.style.color = '#b6ffb6';
+        btn.style.border = '2px solid #39ff14';
+        btn.style.borderRadius = '16px';
+        btn.style.cursor = 'pointer';
+        btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+        btn.style.fontFamily = '"Cinzel", "Times New Roman", serif';
+        btn.style.letterSpacing = '1px';
+        btn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        btn.style.transition = 'box-shadow 0.2s, background 0.2s, color 0.2s';
+        btn.onmouseenter = () => {
+            btn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+            btn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
+            btn.style.color = '#eaffea';
+        };
+        btn.onmouseleave = () => {
+            btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+            btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+            btn.style.color = '#b6ffb6';
+        };
+        btn.addEventListener('click', () => this.completeLevel5());
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            playfield.appendChild(btn);
+        } else {
+            document.body.appendChild(btn);
+        }
+    }
+
+    removeContinueDeeperButton() {
+        const btn = document.querySelector('.continue-deeper-btn');
+        if (btn) btn.remove();
+    }
+
+    completeLevel5() {
+        this.removeContinueDeeperButton();
+        // Player runs off screen before showing victory screen
+        const playerElement = document.querySelector('.player-character');
+        if (playerElement) {
+            this.playerCharacter.playRunAnimation();
+            const runningSound = this.soundManager.sounds.get('running');
+            if (runningSound) {
+                runningSound.currentTime = 1;
+                runningSound.play().catch(error => console.log('Error playing running sound:', error));
+            }
+            playerElement.style.transition = 'transform 4s ease-out';
+            playerElement.style.transform = 'translateX(1200px)';
+            setTimeout(() => {
+                this.playerCharacter.stopRunAnimation();
+                if (runningSound) {
+                    runningSound.pause();
+                    runningSound.currentTime = 0;
+                }
+                this.showVictoryScreen();
+            }, 4000);
+        } else {
+            // Fallback: just show victory screen
+            this.showVictoryScreen();
+        }
     }
 }
 

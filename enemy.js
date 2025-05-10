@@ -151,13 +151,17 @@ export class Enemy {
         const playerHitboxWidth = playerRect.width * 0.6;
         const playerHitboxRight = playerRect.left + (playerRect.width + playerHitboxWidth) / 2;
 
-        // Calculate how far the enemy needs to move to reach the player's hitbox
-        let distanceToMove = playerHitboxRight - enemyRect.right;
-
+        let distanceToMove;
         // Add class-specific offset
         if (this.constructor.name === 'Executioner') {
             // Add 100px offset for Executioner to keep it further away
-            distanceToMove += 100;
+            distanceToMove = playerHitboxRight - enemyRect.right + 100;
+        } else if (this.constructor.name === 'Skeleton') {
+            // Move skeleton so its LEFT edge aligns with the player's hitbox, minus an even larger offset
+            distanceToMove = playerHitboxRight - enemyRect.left - 150;
+        } else {
+            // Default: move right edge to player's hitbox
+            distanceToMove = playerHitboxRight - enemyRect.right;
         }
 
         return distanceToMove;

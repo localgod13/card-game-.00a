@@ -51,7 +51,7 @@ body {
     max-height: 600px;
     width: 100%;
     max-width: 1200px;
-    background-image: url('./assets/Images/Gravyard.png');
+    background-image: url('./assets/Images/gy.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -1694,4 +1694,41 @@ body {
 
 .mage-option {
     width: 550px;
+}
+
+/* Hitbox View Styles */
+.hitbox-view .enemy-character {
+    outline: 2px solid rgba(255, 0, 0, 0.5);
+}
+
+.hitbox-view .enemy-character::before {
+    content: 'Hitbox';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 0, 0.7);
+    color: white;
+    padding: 2px 4px;
+    font-size: 12px;
+    border-radius: 3px;
+    z-index: 1000;
+}
+
+.hitbox-view .enemy-sprite {
+    outline: 2px solid rgba(0, 255, 0, 0.5);
+}
+
+.hitbox-view .enemy-sprite::before {
+    content: 'Sprite';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 255, 0, 0.7);
+    color: white;
+    padding: 2px 4px;
+    font-size: 12px;
+    border-radius: 3px;
+    z-index: 1000;
 } 

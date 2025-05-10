@@ -266,7 +266,8 @@ export class DebugMenu {
                     { id: 'add-mana', label: 'Add Mana', icon: '🔮' },
                     { id: 'draw-card', label: 'Draw Card', icon: '🎴' },
                     { id: 'show-coordinates', label: 'Show Coordinates', icon: '📍' },
-                    { id: 'kill-player', label: 'Kill Player', icon: '💀', style: 'background-color: #ff4444' }
+                    { id: 'kill-player', label: 'Kill Player', icon: '💀', style: 'background-color: #ff4444' },
+                    { id: 'skip-level', label: 'Skip Level', icon: '⏭️', style: 'background-color: #4CAF50; color: white;' }
                 ]
             },
             {
@@ -275,7 +276,8 @@ export class DebugMenu {
                     { id: 'heal-enemy', label: 'Heal All Enemies', icon: '❤️' },
                     { id: 'damage-enemy', label: 'Damage All Enemies', icon: '💔' },
                     { id: 'next-enemy', label: 'Next Enemy', icon: '➡️' },
-                    { id: 'kill-enemy', label: 'Kill Enemy', icon: '💀', style: 'background-color: #ff4444' }
+                    { id: 'kill-enemy', label: 'Kill Enemy', icon: '💀', style: 'background-color: #ff4444' },
+                    { id: 'toggle-hitbox-view', label: 'Toggle Hitboxes', icon: '🎯' }
                 ]
             },
             {
@@ -489,6 +491,11 @@ export class DebugMenu {
                 break;
             case 'show-coordinates':
                 this.toggleCoordinates();
+                break;
+            case 'skip-level':
+                if (this.game && typeof this.game.skipLevel === 'function') {
+                    this.game.skipLevel();
+                }
                 break;
         }
     }
