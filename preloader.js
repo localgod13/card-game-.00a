@@ -22,10 +22,10 @@ export class Preloader {
                     './assets/Sprites/Wizard/Hit.png'
                 ],
                 flyingDemon: [
-                    './assets/Sprites/Flying Demon/IDLE.png',
-                    './assets/Sprites/Flying Demon/ATTACK.png',
-                    './assets/Sprites/Flying Demon/HURT.png',
-                    './assets/Sprites/Flying Demon/DEATH.png'
+                    './assets/Sprites/Flying eye/Flight.png',
+                    './assets/Sprites/Flying eye/Attack.png',
+                    './assets/Sprites/Flying eye/Take Hit.png',
+                    './assets/Sprites/Flying eye/Death.png'
                 ],
                 executioner: [
                     './assets/Sprites/Executioner/idle2.png',

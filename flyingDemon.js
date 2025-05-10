@@ -7,10 +7,10 @@ import { Enemy } from './enemy.js';
  */
 export class FlyingDemon extends Enemy {
     constructor(id, health) {
-        super(id, health, './assets/Sprites/Flying Demon/IDLE.png');
-        this.attackSpriteSheet = './assets/Sprites/Flying Demon/ATTACK.png';
-        this.hurtSpriteSheet = './assets/Sprites/Flying Demon/HURT.png';
-        this.deathSpriteSheet = './assets/Sprites/Flying Demon/DEATH.png';
+        super(id, health, './assets/Sprites/Flying eye/Flight.png');
+        this.attackSpriteSheet = './assets/Sprites/Flying eye/Attack.png';
+        this.hurtSpriteSheet = './assets/Sprites/Flying eye/Take Hit.png';
+        this.deathSpriteSheet = './assets/Sprites/Flying eye/Death.png';
         this.currentFrame = Math.floor(Math.random() * 4);
         this.totalFrames = 4;
         this.frameWidth = 81;
