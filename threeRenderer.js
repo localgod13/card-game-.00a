@@ -291,7 +291,6 @@ export class ThreeRenderer {
         // Load textures
         const textureLoader = new THREE.TextureLoader();
         const fireballTexture = textureLoader.load('assets/Images/fireball.png');
-        const sparkTexture = textureLoader.load('assets/Images/spark.png');
         const flameTexture = textureLoader.load('assets/Sprites/fire/burning_loop_4.png');
 
         // Set up flame texture
@@ -374,7 +373,7 @@ export class ThreeRenderer {
         emberGeometry.setAttribute('size', new THREE.BufferAttribute(emberSizes, 1));
 
         const emberMaterial = new THREE.PointsMaterial({
-            map: sparkTexture,
+            map: flameTexture,
             color: 0xff8800,
             size: 4,
             transparent: true,
@@ -1398,6 +1397,21 @@ export class ThreeRenderer {
                 // Check if effect is complete
                 if (elapsed > effect.duration) {
                     effect.active = false;
+                    
+                    // Properly dispose of Three.js resources
+                    if (effect.burst) {
+                        effect.burst.geometry.dispose();
+                        effect.burst.material.dispose();
+                    }
+                    if (effect.particles) {
+                        effect.particles.geometry.dispose();
+                        effect.particles.material.dispose();
+                    }
+                    if (effect.fireParticles) {
+                        effect.fireParticles.geometry.dispose();
+                        effect.fireParticles.material.dispose();
+                    }
+                    
                     this.scene.remove(effect.group);
                     this.effects.delete(effect);
                 }
@@ -1422,7 +1436,6 @@ export class ThreeRenderer {
         // Load textures
         const textureLoader = new THREE.TextureLoader();
         const flameTexture = textureLoader.load('assets/Sprites/fire/burning_loop_4.png');
-        const sparkTexture = textureLoader.load('assets/Images/spark.png');
 
         // Set up flame texture
         flameTexture.wrapS = THREE.RepeatWrapping;
@@ -1486,7 +1499,7 @@ export class ThreeRenderer {
         particleGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
 
         const particleMaterial = new THREE.PointsMaterial({
-            map: sparkTexture,
+            map: flameTexture,
             color: 0xffaa00,
             size: 8,
             transparent: true,
@@ -1554,19 +1567,21 @@ export class ThreeRenderer {
         if (!this.initialized) return;
 
         const deltaTime = this.clock.getDelta();
+        let hasActiveEffects = false;
 
         // Update all active effects
         for (const [id, effect] of this.effects) {
             if (effect.active && effect.update) {
                 effect.update(deltaTime);
+                hasActiveEffects = true;
             }
         }
 
         // Render scene
         this.renderer.render(this.scene, this.camera);
 
-        // Continue animation if there are active effects
-        if (this.effects.size > 0) {
+        // Continue animation only if there are active effects
+        if (hasActiveEffects) {
             requestAnimationFrame(() => this.animate());
         }
     }

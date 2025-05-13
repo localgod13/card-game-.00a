@@ -61,15 +61,17 @@ export class Enemy {
         // Create stats container
         const statsContainer = document.createElement('div');
         statsContainer.className = 'character-stats';
+        statsContainer.style.position = 'absolute';
+        statsContainer.style.left = '0';
+        statsContainer.style.top = '100px'; // Move health text just a little bit lower below the sprite
+        statsContainer.style.width = '100%';
+        statsContainer.style.pointerEvents = 'none';
         statsContainer.innerHTML = `
-            <div class="health-text">${this.health}/${this.maxHealth}</div>
-            <div class="health-bar">
-                <div class="health-bar-fill" style="width: 100%"></div>
-            </div>
+            <div class=\"health-text\" style=\"position: absolute; top: 0; left: 40%; transform: translateX(-50%); font-size: 16px; color: white; font-weight: bold; text-shadow: 1px 1px 2px #000;\">${this.health}/${this.maxHealth}</div>
         `;
 
+        spriteContainer.appendChild(statsContainer);
         enemyElement.appendChild(spriteContainer);
-        enemyElement.appendChild(statsContainer);
         this.element = enemyElement;
         
         // Start animation

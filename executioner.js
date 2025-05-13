@@ -212,4 +212,43 @@ export class Executioner extends Enemy {
             deathFrame++;
         }, 100); // 100ms per frame for death animation
     }
+
+    createEnemyElement() {
+        const enemyElement = document.createElement('div');
+        enemyElement.className = 'enemy-character';
+        enemyElement.dataset.enemyId = this.id;
+        
+        // Create sprite container
+        const spriteContainer = document.createElement('div');
+        spriteContainer.className = 'enemy-sprite';
+        spriteContainer.style.width = `${this.frameWidth * this.scale}px`;
+        spriteContainer.style.height = `${this.frameHeight * this.scale}px`;
+        spriteContainer.style.backgroundImage = `url('${this.spriteSheet}')`;
+        spriteContainer.style.backgroundSize = this.getBackgroundSize();
+        spriteContainer.style.backgroundPosition = '0px 0px';
+        spriteContainer.style.backgroundRepeat = 'no-repeat';
+        spriteContainer.style.transform = this.getTransform();
+        spriteContainer.style.position = 'relative';
+        spriteContainer.style.left = '0px';
+        spriteContainer.style.top = '0px';
+        spriteContainer.style.transition = 'left 0.3s ease-out';
+
+        // Create stats container (health text only, moved further down)
+        const statsContainer = document.createElement('div');
+        statsContainer.className = 'character-stats';
+        statsContainer.style.position = 'absolute';
+        statsContainer.style.left = '0';
+        statsContainer.style.top = '40px'; // Move health text up a little more for Executioner
+        statsContainer.style.width = '100%';
+        statsContainer.style.pointerEvents = 'none';
+        statsContainer.innerHTML = `
+            <div class=\"health-text\" style=\"position: absolute; top: 0px; left: 50%; transform: translateX(-50%); font-size: 16px; color: white; font-weight: bold; text-shadow: 1px 1px 2px #000;\">${this.health}/${this.maxHealth}</div>
+        `;
+
+        spriteContainer.appendChild(statsContainer);
+        enemyElement.appendChild(spriteContainer);
+        this.element = enemyElement;
+        this.startIdleAnimation();
+        return enemyElement;
+    }
 } 

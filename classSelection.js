@@ -423,6 +423,22 @@ export class ClassSelection {
             cursor: pointer;
         `;
 
+        // Create fire background
+        const fireBackground = document.createElement('div');
+        fireBackground.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('./assets/Images/firebg.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+            z-index: -1;
+        `;
+        introContainer.appendChild(fireBackground);
+
         // Create scroll container
         const scrollContainer = document.createElement('div');
         scrollContainer.style.cssText = `

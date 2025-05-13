@@ -355,6 +355,38 @@ export class DebugMenu {
                 }
             });
 
+            // Add level selector after the Player Controls section
+            if (section.title === 'Player Controls') {
+                const levelSelector = document.createElement('div');
+                levelSelector.className = 'card-selector';
+                levelSelector.style.marginTop = '10px';
+                
+                const levelLabel = document.createElement('div');
+                levelLabel.textContent = 'Select Level:';
+                levelLabel.style.color = '#fff';
+                levelLabel.style.marginBottom = '5px';
+                levelSelector.appendChild(levelLabel);
+                
+                const select = document.createElement('select');
+                for (let i = 1; i <= this.game.maxLevel; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `Level ${i}`;
+                    select.appendChild(option);
+                }
+                
+                select.addEventListener('change', (e) => {
+                    const selectedLevel = parseInt(e.target.value);
+                    if (selectedLevel !== this.game.currentLevel) {
+                        this.game.currentLevel = selectedLevel;
+                        this.game.startNextLevel();
+                    }
+                });
+                
+                levelSelector.appendChild(select);
+                sectionDiv.appendChild(levelSelector);
+            }
+
             content.appendChild(sectionDiv);
         });
 

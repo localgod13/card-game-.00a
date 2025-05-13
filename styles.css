@@ -122,6 +122,10 @@ body {
     transform: scaleX(-1);
 }
 
+.enemy-sprite .health-text, .enemy-sprite .character-stats {
+    transform: scaleX(-1);
+}
+
 .character-stats {
     width: 100%;
     text-align: center;
