@@ -39,6 +39,18 @@ export class Preloader {
                     './assets/Sprites/Skeleton/skelehit.png',
                     './assets/Sprites/Skeleton/skeledeath.png',
                     './assets/Sprites/Skeleton/skeleshield.png'
+                ],
+                blackWerewolf: [
+                    './assets/Sprites/Black Werewolf/bwIdle.png',
+                    './assets/Sprites/Black Werewolf/bjump.png',
+                    './assets/Sprites/Black Werewolf/rattack.png',
+                    './assets/Sprites/Black Werewolf/bdead.png',
+                    './assets/Sprites/Black Werewolf/bhurt.png',
+                    './assets/Sprites/Black Werewolf/brun.png'
+                ],
+                fire: [
+                    './assets/Sprites/fire/burning_loop_1.png',
+                    './assets/Sprites/fire/burning_loop_4.png'
                 ]
             },
             images: [
@@ -46,11 +58,50 @@ export class Preloader {
                 './assets/Images/cardback.png',
                 './assets/Images/attack.png',
                 './assets/Images/defense.png',
-                './assets/Images/magic.png'
+                './assets/Images/magic.png',
+                './assets/Images/gy.png',
+                './assets/Images/graveyard2.png',
+                './assets/Images/graveyard3.png',
+                './assets/Images/forest.png',
+                './assets/Images/forest2.png',
+                './assets/Images/forest3.png',
+                './assets/Images/wbutton.png',
+                './assets/Images/mbutton.png',
+                './assets/Images/flaming_meteor.png',
+                './assets/Images/fireball.png',
+                './assets/Images/Blaze.png',
+                './assets/Images/firebg.png',
+                './assets/Images/tscreen.png'
             ],
             audio: [
                 './assets/Audio/tsmusic.mp3',
-                './assets/Audio/level1.mp3'
+                './assets/Audio/level1.mp3',
+                './assets/Audio/shieldhit.mp3',
+                './assets/Audio/hurt1.mp3',
+                './assets/Audio/hurt2.mp3',
+                './assets/Audio/hurt3.mp3',
+                './assets/Audio/nextround.mp3',
+                './assets/Audio/nextround2.mp3',
+                './assets/Audio/running.mp3',
+                './assets/Audio/skelshield.mp3',
+                './assets/Audio/skeledead.mp3',
+                './assets/Audio/forestnar.mp3',
+                './assets/Audio/warforest.mp3',
+                './assets/Audio/mageintro.wav',
+                './assets/Audio/warriorintro.mp3',
+                './assets/Audio/fire1.mp3',
+                './assets/Audio/fire2.mp3',
+                './assets/Audio/explosion.mp3',
+                './assets/Audio/molten.mp3',
+                './assets/Audio/inferno.mp3',
+                './assets/Audio/pyo.mp3',
+                './assets/Audio/heatwave.mp3',
+                './assets/Audio/click.mp3',
+                './assets/Audio/wolfdead.mp3',
+                './assets/Audio/forestmusic.mp3',
+                './assets/Audio/level6nar.mp3',
+                './assets/Audio/howl.mp3',
+                './assets/Audio/exdeath.mp3'
             ]
         };
     }
