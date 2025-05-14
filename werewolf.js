@@ -329,6 +329,46 @@ export class Werewolf extends Enemy {
         }, this.runAnimationSpeed);
     }
 
+    takeDamage(amount) {
+        // Check if this hit would bring health below 50%
+        if (this.health - amount <= this.maxHealth * 0.5 && this.health > this.maxHealth * 0.5) {
+            // Directly update health
+            this.health -= amount;
+            const isDead = this.health <= 0;
+            
+            const spriteContainer = this.element.querySelector('.enemy-sprite');
+            if (spriteContainer) {
+                // Stop any existing animations
+                if (this.animationInterval) {
+                    clearInterval(this.animationInterval);
+                }
+                // Add the flip transform to face right
+                spriteContainer.style.transform = 'scaleX(1)';
+                // Add transition for smooth movement
+                spriteContainer.style.transition = 'left 2s linear';
+                // Move off screen to the right
+                spriteContainer.style.left = '1200px';
+                // Play run animation
+                this.playRunAnimation();
+                // Remove the enemy after animation completes and trigger level completion
+                setTimeout(() => {
+                    if (this.element && this.element.parentNode) {
+                        this.element.parentNode.removeChild(this.element);
+                        // Dispatch custom event for level completion
+                        const levelCompleteEvent = new CustomEvent('levelComplete', {
+                            detail: { level: 6 }
+                        });
+                        document.dispatchEvent(levelCompleteEvent);
+                    }
+                }, 2000);
+            }
+            return isDead;
+        }
+        
+        // For normal damage (above 50% health), use parent's takeDamage
+        return super.takeDamage(amount);
+    }
+
     // Ensure spells/skills hit the center of the werewolf's hitbox
     calculateAttackPosition() {
         const playerElement = document.querySelector('.player-character');

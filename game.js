@@ -360,7 +360,7 @@ export class Game {
         this.soundManager.loadSound('forestmusic', './assets/Audio/forestmusic.mp3');
         this.soundManager.loadSound('warforest', './assets/Audio/warforest.mp3');
         this.currentLevel = 1;
-        this.maxLevel = 5;
+        this.maxLevel = 7;
         this.isLevelTransitioning = false;
 
         // Add keydown event listener for X key kill functionality
@@ -391,6 +391,13 @@ export class Game {
                         this.checkLevelCompletion();
                     }
                 }
+            }
+        });
+
+        // Add event listener for level completion
+        document.addEventListener('levelComplete', (event) => {
+            if (event.detail.level === 6) {
+                this.handleLevel6Completion();
             }
         });
     }
@@ -486,8 +493,8 @@ export class Game {
         levelSelector.style.borderRadius = '3px';
         levelSelector.style.cursor = 'pointer';
 
-        // Add options for each level
-        for (let i = 1; i <= this.maxLevel; i++) {
+        // Add options for each level, including level 6
+        for (let i = 1; i <= 7; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -564,12 +571,15 @@ export class Game {
             // Add stats container to player side instead of player element
             playerSide.appendChild(playerElement);
             playerSide.appendChild(statsContainer);
-            // Run-in animation for level 1
-            if (this.currentLevel === 1 && (this.playerClass === 'mage' || this.playerClass === 'warrior')) {
+            
+            // Run-in animation for all levels
+            if (this.playerClass === 'mage' || this.playerClass === 'warrior') {
                 playerElement.style.transition = 'none';
                 playerElement.style.transform = 'translateX(-600px)';
+                playerElement.style.opacity = '0';
                 setTimeout(() => {
-                    playerElement.style.transition = 'transform 2s ease-out';
+                    playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
+                    playerElement.style.opacity = '1';
                     this.playerCharacter.playRunAnimation();
                     // Play running sound
                     const runningSound = this.soundManager.sounds.get('running');
@@ -756,38 +766,39 @@ export class Game {
             narratorBox.addEventListener('click', () => {
                 narrationAudio.pause();
                 narratorBox.remove();
-                setTimeout(() => {
-                    console.log('[Level 6] 3 seconds passed, trying to play howl.mp3');
-                    const howl = new Audio('./assets/Audio/howl.mp3');
-                    howl.volume = 1;
-                    howl.play().then(() => {
-                        console.log('[Level 6] howl.mp3 played!');
-                        // Spawn a werewolf 1 second after the howl starts
-                        setTimeout(() => {
-                            const enemySide = document.querySelector('.enemy-side');
-                            if (!enemySide) {
-                                console.error('[Level 6] .enemy-side not found!');
-                                return;
-                            }
-                            const werewolf = new Werewolf(1, 120);
-                            this.enemies.unshift(werewolf);
-                            const werewolfElement = werewolf.createEnemyElement();
-                            if (enemySide.firstChild) {
-                                enemySide.insertBefore(werewolfElement, enemySide.firstChild);
-                            } else {
-                                enemySide.appendChild(werewolfElement);
-                            }
-                            console.log('[Level 6] Werewolf element added to DOM');
-                            requestAnimationFrame(() => {
-                                werewolf.playEntranceAnimation();
-                                console.log('[Level 6] Werewolf entrance animation started');
-                            });
-                        }, 1000);
-                    }).catch((e) => {
-                        console.error('[Level 6] howl.mp3 play error:', e);
-                    });
-                }, 3000);
+                console.log('[Level 6] Playing howl.mp3');
+                const howl = new Audio('./assets/Audio/howl.mp3');
+                howl.volume = 1;
+                howl.play().then(() => {
+                    console.log('[Level 6] howl.mp3 played!');
+                    // Spawn a werewolf 1 second after the howl starts
+                    setTimeout(() => {
+                        const enemySide = document.querySelector('.enemy-side');
+                        if (!enemySide) {
+                            console.error('[Level 6] .enemy-side not found!');
+                            return;
+                        }
+                        const werewolf = new Werewolf(1, 120);
+                        this.enemies.unshift(werewolf);
+                        const werewolfElement = werewolf.createEnemyElement();
+                        if (enemySide.firstChild) {
+                            enemySide.insertBefore(werewolfElement, enemySide.firstChild);
+                        } else {
+                            enemySide.appendChild(werewolfElement);
+                        }
+                        console.log('[Level 6] Werewolf element added to DOM');
+                        requestAnimationFrame(() => {
+                            werewolf.playEntranceAnimation();
+                            console.log('[Level 6] Werewolf entrance animation started');
+                        });
+                    }, 1000);
+                }).catch((e) => {
+                    console.error('[Level 6] howl.mp3 play error:', e);
+                });
             });
+        } else if (this.currentLevel === 7) {
+            // Level 7: No enemies yet
+            console.log('Level 7 initialized - no enemies');
         } else {
             // For other levels, spawn enemies based on level number
             // (No longer used for levels 1-3)
@@ -833,6 +844,8 @@ export class Game {
                 playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
             } else if (this.currentLevel === 6) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
+            } else if (this.currentLevel === 7) {
+                playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
             } else {
                 playfield.style.backgroundImage = "";
             }
@@ -1469,6 +1482,27 @@ export class Game {
             this.playerResource = Math.max(0, this.playerResource - attack.cost);
             this.reservedResource -= attack.cost;
 
+            // Check if there are any enemies left
+            if (this.enemies.length === 0) {
+                // No enemies left, end the attack phase
+                break;
+            }
+
+            // For single-target spells, check if the target is still alive
+            if (attack.cardId !== 'heat_wave' && attack.cardId !== 'pyroclasm' && 
+                attack.cardId !== 'meteor_strike' && attack.cardId !== 'inferno') {
+                const targetEnemy = this.enemies.find(e => e.id === attack.targetEnemy.id);
+                if (!targetEnemy) {
+                    // Target is dead, find a new target
+                    const newTarget = this.enemies[0]; // Use the first remaining enemy
+                    if (!newTarget) {
+                        // No enemies left, end the attack phase
+                        break;
+                    }
+                    attack.targetEnemy = newTarget;
+                }
+            }
+
             // Play attack animation
             if (this.playerCharacter) {
                 this.playerCharacter.playAttackAnimation();
@@ -2012,8 +2046,8 @@ export class Game {
         levelSelector.style.borderRadius = '3px';
         levelSelector.style.cursor = 'pointer';
 
-        // Add options for each level
-        for (let i = 1; i <= this.maxLevel; i++) {
+        // Add options for each level, including level 6
+        for (let i = 1; i <= 7; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -2301,10 +2335,16 @@ export class Game {
             setTimeout(() => {
                 const playerElement = document.querySelector('.player-character');
                 if (playerElement) {
+                    // Start with player off-screen
                     playerElement.style.transition = 'none';
                     playerElement.style.transform = 'translateX(-600px)';
+                    // Ensure player is not visible during initialization
+                    playerElement.style.opacity = '0';
+                    
                     setTimeout(() => {
-                        playerElement.style.transition = 'transform 2s ease-out';
+                        // Make player visible and start run animation
+                        playerElement.style.opacity = '1';
+                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
                         this.playerCharacter.playRunAnimation();
                         // Play running sound
                         const runningSound = this.soundManager.sounds.get('running');
@@ -2340,6 +2380,8 @@ export class Game {
                 playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
             } else if (this.currentLevel === 6) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
+            } else if (this.currentLevel === 7) {
+                playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
             } else {
                 playfield.style.backgroundImage = "";
             }
@@ -2744,6 +2786,46 @@ export class Game {
                 mapContainer.appendChild(enterBtn);
             }, 2000);
         });
+    }
+
+    handleLevel6Completion() {
+        // Wait a short moment before player follows
+        setTimeout(() => {
+            const playerElement = document.querySelector('.player-character');
+            if (playerElement) {
+                // Start with player in current position
+                const originalPosition = playerElement.style.transform;
+                
+                // Start the run animation
+                this.playerCharacter.playRunAnimation();
+                
+                // Play running sound starting 1 second in
+                const runningSound = this.soundManager.sounds.get('running');
+                if (runningSound) {
+                    runningSound.currentTime = 1;
+                    runningSound.play().catch(error => console.log('Error playing running sound:', error));
+                }
+                
+                // Animate player moving right with a fixed pixel value to ensure it's off screen
+                playerElement.style.transition = 'transform 4s ease-out';
+                playerElement.style.transform = 'translateX(1200px)';
+                
+                // Wait for animation to complete before showing level transition
+                setTimeout(() => {
+                    // Stop the run animation
+                    this.playerCharacter.stopRunAnimation();
+                    
+                    // Stop running sound
+                    if (runningSound) {
+                        runningSound.pause();
+                        runningSound.currentTime = 0;
+                    }
+                    
+                    // Show level transition
+                    this.showLevelTransition();
+                }, 4000);
+            }
+        }, 1000); // Wait 1 second before player starts following
     }
 }
 
