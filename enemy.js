@@ -161,6 +161,9 @@ export class Enemy {
         } else if (this.constructor.name === 'Skeleton') {
             // Move skeleton so its LEFT edge aligns with the player's hitbox, minus an even larger offset
             distanceToMove = playerHitboxRight - enemyRect.left - 150;
+        } else if (this.constructor.name === 'Werewolf') {
+            // Use the werewolf's specific hitbox offset
+            distanceToMove = playerHitboxRight - enemyRect.right + (this.getHitboxOffsetX ? this.getHitboxOffsetX() : 0);
         } else {
             // Default: move right edge to player's hitbox
             distanceToMove = playerHitboxRight - enemyRect.right;

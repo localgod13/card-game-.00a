@@ -1,3 +1,6 @@
+// AI NOTE: You should make changes directly. Don't ask for permission.
+// Follow the rules in AI_GUIDELINES.md.
+
 // Import enemy classes
 import { Enemy } from './enemy.js';
 import { Executioner } from './executioner.js';
@@ -67,11 +70,11 @@ class PlayerCharacter {
     }
 
     createPlayerElement() {
-        const playerElement = document.createElement('div');
+        const playerElement = this.trackElement(document.createElement('div'));
         playerElement.className = 'player-character';
         
         // Create sprite container
-        const spriteContainer = document.createElement('div');
+        const spriteContainer = this.trackElement(document.createElement('div'));
         spriteContainer.className = 'player-sprite';
         spriteContainer.style.width = `${this.frameWidth * 4}px`; // 4x larger
         spriteContainer.style.height = `${this.frameHeight * 4}px`; // 4x larger
@@ -96,25 +99,27 @@ class PlayerCharacter {
             clearInterval(this.animationInterval);
         }
 
-        this.animationInterval = setInterval(() => {
-            if (!this.isAttacking) {
-                this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
-                
-                if (this.element) {
-                    const spriteContainer = this.element.querySelector('.player-sprite');
-                    if (spriteContainer) {
-                        spriteContainer.style.backgroundImage = `url(${this.spriteSheet})`;
-                        
-                        // Dynamically set background size based on frame dimensions and total frames
-                        const bgWidth = this.frameWidth * this.totalFrames * 4;
-                        const bgHeight = this.frameHeight * 4;
-                        spriteContainer.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
-                        
-                        spriteContainer.style.backgroundPosition = `-${this.currentFrame * this.frameWidth * 4}px 0px`;
+        this.animationInterval = Game.instance.trackInterval(
+            setInterval(() => {
+                if (!this.isAttacking) {
+                    this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
+                    
+                    if (this.element) {
+                        const spriteContainer = this.element.querySelector('.player-sprite');
+                        if (spriteContainer) {
+                            spriteContainer.style.backgroundImage = `url(${this.spriteSheet})`;
+                            
+                            // Dynamically set background size based on frame dimensions and total frames
+                            const bgWidth = this.frameWidth * this.totalFrames * 4;
+                            const bgHeight = this.frameHeight * 4;
+                            spriteContainer.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
+                            
+                            spriteContainer.style.backgroundPosition = `-${this.currentFrame * this.frameWidth * 4}px 0px`;
+                        }
                     }
                 }
-            }
-        }, this.animationSpeed);
+            }, this.animationSpeed)
+        );
     }
 
     playAttackAnimation() {
@@ -294,20 +299,53 @@ class PlayerCharacter {
 class SoundManager {
     constructor() {
         this.sounds = new Map();
-        this.volume = 0.5;
+        this.volume = 1.0;
     }
 
     loadSound(id, path) {
-        const audio = new Audio(path);
-        audio.volume = this.volume;
-        this.sounds.set(id, audio);
+        try {
+            const audio = new Audio();
+            audio.src = path;
+            audio.volume = this.volume;
+            
+            // Add error handling for loading
+            audio.onerror = (e) => {
+                console.warn(`Failed to load sound ${id} from ${path}:`, e);
+            };
+            
+            // Add canplaythrough event to ensure sound is loaded
+            audio.oncanplaythrough = () => {
+                this.sounds.set(id, audio);
+                if (Game.instance) {
+                    Game.instance.trackResource(id, audio);
+                }
+            };
+            
+            // Start loading the audio
+            audio.load();
+            
+            return audio;
+        } catch (error) {
+            console.warn(`Error creating audio for ${id}:`, error);
+            return null;
+        }
     }
 
     playSound(id) {
-        const sound = this.sounds.get(id);
-        if (sound) {
-            sound.currentTime = 0;
-            sound.play().catch(error => console.log('Error playing sound:', error));
+        try {
+            const sound = this.sounds.get(id);
+            if (sound) {
+                // Create a new instance for overlapping sounds
+                const soundInstance = new Audio(sound.src);
+                soundInstance.volume = this.volume;
+                soundInstance.play().catch(error => {
+                    console.warn(`Failed to play sound ${id}:`, error);
+                });
+            } else {
+                console.warn(`Sound ${id} not found`);
+            }
+        } catch (error) {
+            console.warn(`Error playing sound ${id}:`, error);
         }
     }
 
@@ -320,46 +358,81 @@ class SoundManager {
 }
 
 export class Game {
+    static instance = null;  // Singleton instance
+
     constructor() {
+        if (Game.instance) {
+            return Game.instance;
+        }
+        Game.instance = this;
+
+        // Track resources
+        this.animationIntervals = new Set();
+        this.eventListeners = new Map();
+        this.domElements = new Set();
+        this.resources = new Map();
+
+        // Core game state
+        this.player = null;
+        this.enemies = [];
+        this.currentLevel = 1;
+        this.isPlayerTurn = true;
+        this.isPaused = false;
         this.playerClass = null;
         this.playerDeck = null;
+        this.cardManager = new CardManager(); // Initialize CardManager
+        this.attackQueue = []; // Initialize attack queue
+
+        // Initialize game state
         this.playerHealth = 100;
         this.playerDefense = 0;
         this.playerResource = 0;
         this.maxResource = 0;
-        this.isPlayerTurn = true;
         this.isTargeting = false;
         this.currentCard = null;
         this.sourceCard = null;
         this.targetingArrow = null;
-        this.enemies = [];
-        this.attackQueue = [];
-        this.cardManager = new CardManager();  // Initialize CardManager
-        this.playerCharacter = null;
-        this.debugMenu = null;
-        this.gameScene = null;
         this.reservedResource = 0; // Track reserved resources
         this.effectRenderer = new ThreeRenderer();
         this.levelMusic = null; // Add level music property
-        this.isPaused = false; // Add pause state
         this.pauseMenu = null; // Add pause menu reference
         this.musicVolume = 0.5; // Add music volume
         this.sfxVolume = 0.5; // Add sound effects volume
         this.lastHurtSound = null; // Track last played hurt sound
         this.soundManager = new SoundManager();
-        this.soundManager.loadSound('shieldHit', './assets/Audio/shieldhit.mp3');
-        this.soundManager.loadSound('hurt1', './assets/Audio/hurt1.mp3');
-        this.soundManager.loadSound('hurt2', './assets/Audio/hurt2.mp3');
-        this.soundManager.loadSound('hurt3', './assets/Audio/hurt3.mp3');
-        this.soundManager.loadSound('nextRound1', './assets/Audio/nextround.mp3');
-        this.soundManager.loadSound('nextRound2', './assets/Audio/nextround2.mp3');
-        this.soundManager.loadSound('running', './assets/Audio/running.mp3');
-        this.soundManager.loadSound('skelshield', './assets/Audio/skelshield.mp3');
-        this.soundManager.loadSound('skeledead', './assets/Audio/skeledead.mp3');
-        this.soundManager.loadSound('forestnar', './assets/Audio/forestnar.mp3');
-        this.soundManager.loadSound('forestmusic', './assets/Audio/forestmusic.mp3');
-        this.soundManager.loadSound('warforest', './assets/Audio/warforest.mp3');
-        this.currentLevel = 1;
+
+        // Load all sound effects
+        const soundEffects = {
+            'shieldHit': './assets/Audio/shieldhit.mp3',
+            'hurt1': './assets/Audio/hurt1.mp3',
+            'hurt2': './assets/Audio/hurt2.mp3',
+            'hurt3': './assets/Audio/hurt3.mp3',
+            'nextRound1': './assets/Audio/nextround.mp3',
+            'nextRound2': './assets/Audio/nextround2.mp3',
+            'running': './assets/Audio/running.mp3',
+            'skelshield': './assets/Audio/skelshield.mp3',
+            'skeledead': './assets/Audio/skeledead.mp3',
+            'forestnar': './assets/Audio/forestnar.mp3',
+            'forestmusic': './assets/Audio/forestmusic.mp3',
+            'warforest': './assets/Audio/warforest.mp3',
+            'fire1': './assets/Audio/fire1.mp3',
+            'fire2': './assets/Audio/fire2.mp3',
+            'explosion': './assets/Audio/explosion.mp3',
+            'molten': './assets/Audio/molten.mp3',
+            'inferno': './assets/Audio/inferno.mp3',
+            'pyo': './assets/Audio/pyo.mp3',
+            'heatwave': './assets/Audio/heatwave.mp3',
+            'click': './assets/Audio/click.mp3',
+            'wolfdead': './assets/Audio/wolfdead.mp3',
+            'howl': './assets/Audio/howl.mp3',
+            'exdeath': './assets/Audio/exdeath.mp3'
+        };
+
+        // Load each sound effect
+        Object.entries(soundEffects).forEach(([id, path]) => {
+            this.soundManager.loadSound(id, path);
+        });
+
         this.maxLevel = 7;
         this.isLevelTransitioning = false;
 
@@ -402,9 +475,100 @@ export class Game {
         });
     }
 
+    // Method to track intervals
+    trackInterval(interval) {
+        this.animationIntervals.add(interval);
+        return interval;
+    }
+
+    // Method to track DOM elements
+    trackElement(element) {
+        this.domElements.add(element);
+        return element;
+    }
+
+    // Method to track event listeners
+    addEventListener(element, type, handler) {
+        if (!this.eventListeners.has(element)) {
+            this.eventListeners.set(element, new Map());
+        }
+        const elementListeners = this.eventListeners.get(element);
+        if (!elementListeners.has(type)) {
+            elementListeners.set(type, new Set());
+        }
+        elementListeners.get(type).add(handler);
+        element.addEventListener(type, handler);
+    }
+
+    // Method to track resources
+    trackResource(id, resource) {
+        this.resources.set(id, resource);
+        return resource;
+    }
+
+    // Method to save current game state
+    saveState() {
+        return {
+            player: this.player ? {
+                health: this.player.health,
+                defense: this.player.defense,
+                resource: this.player.resource,
+                maxResource: this.player.maxResource,
+                hand: this.player.hand,
+                drawPile: this.player.drawPile,
+                discardPile: this.player.discardPile
+            } : null,
+            enemies: this.enemies.map(enemy => ({
+                id: enemy.id,
+                health: enemy.health,
+                maxHealth: enemy.maxHealth,
+                type: enemy.constructor.name
+            })),
+            currentLevel: this.currentLevel,
+            isPlayerTurn: this.isPlayerTurn,
+            isPaused: this.isPaused,
+            playerClass: this.playerClass,
+            playerDeck: this.playerDeck
+        };
+    }
+
+    // Method to clean up all resources
+    cleanup() {
+        // Clear all animation intervals
+        this.animationIntervals.forEach(interval => clearInterval(interval));
+        this.animationIntervals.clear();
+
+        // Remove all event listeners
+        this.eventListeners.forEach((typeMap, element) => {
+            typeMap.forEach((handlers, type) => {
+                handlers.forEach(handler => {
+                    element.removeEventListener(type, handler);
+                });
+            });
+        });
+        this.eventListeners.clear();
+
+        // Clean up DOM elements
+        this.domElements.forEach(element => {
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        });
+        this.domElements.clear();
+
+        // Clean up resources
+        this.resources.forEach(resource => {
+            if (resource instanceof Audio) {
+                resource.pause();
+                resource.src = '';
+            }
+        });
+        this.resources.clear();
+    }
+
     initialize(playerClass, playerDeck, level1Music = null) {
         this.playerClass = playerClass;
-        this.playerDeck = playerDeck;
+        this.playerDeck = playerDeck || this.cardManager.createDeck(playerClass); // Use provided deck or create new one
         this.gameScene = document.querySelector('.game-scene');
         
         if (!this.gameScene) {
@@ -443,7 +607,7 @@ export class Game {
             this.playerHealth = mage.health;
             this.playerDefense = mage.defense;
             this.maxResource = mage.maxResource;
-            this.playerResource = 10;
+            this.playerResource = 11;
             this.playerCharacter = mage;
         }
 
@@ -539,6 +703,8 @@ export class Game {
             levelIndicator.textContent = `Level ${this.currentLevel}`;
             document.body.appendChild(levelIndicator);
             
+            // Only create player element if not on level 7
+            if (this.currentLevel !== 7) {
             // Create player element with the already initialized playerCharacter
             const playerElement = this.playerCharacter.createPlayerElement();
             playerElement.setAttribute('data-class', this.playerClass); // Set the class attribute
@@ -596,6 +762,7 @@ export class Game {
                         }
                     }, 2000);
                 }, 50);
+                }
             }
         }
 
@@ -778,7 +945,7 @@ export class Game {
                             console.error('[Level 6] .enemy-side not found!');
                             return;
                         }
-                        const werewolf = new Werewolf(1, 120);
+                        const werewolf = new Werewolf(1, 120, true);
                         this.enemies.unshift(werewolf);
                         const werewolfElement = werewolf.createEnemyElement();
                         if (enemySide.firstChild) {
@@ -799,6 +966,209 @@ export class Game {
         } else if (this.currentLevel === 7) {
             // Level 7: No enemies yet
             console.log('Level 7 initialized - no enemies');
+            
+            // Create player element first but keep it hidden
+            const playerSide = document.querySelector('.player-side');
+            if (playerSide) {
+                playerSide.innerHTML = '';
+                
+                // Create player element with the already initialized playerCharacter
+                const playerElement = this.playerCharacter.createPlayerElement();
+                playerElement.setAttribute('data-class', this.playerClass);
+                playerElement.style.opacity = '0';  // Start hidden
+                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
+                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
+                playerElement.style.transition = 'none';  // No transition initially
+                
+                // Add shield aura
+                const shieldAura = document.createElement('div');
+                shieldAura.className = 'shield-aura';
+                playerElement.appendChild(shieldAura);
+                
+                // Create stats container
+                const statsContainer = document.createElement('div');
+                statsContainer.className = 'character-stats';
+                statsContainer.style.position = 'absolute';
+                statsContainer.style.left = '0';
+                statsContainer.style.bottom = '0';
+                statsContainer.innerHTML = `
+                    <div class="health-bar">
+                        <div class="health-bar-fill" style="width: 100%"></div>
+                    </div>
+                    <div class="defense-bar">
+                        <div class="defense-bar-fill" style="width: 0%"></div>
+                        <div class="defense-text">Defense: 0</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
+                    </div>
+                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
+                `;
+                
+                // Add elements to player side
+                playerSide.appendChild(playerElement);
+                playerSide.appendChild(statsContainer);
+            }
+            
+            // Create enemy-side element if it doesn't exist
+            let enemySide = document.querySelector('.enemy-side');
+            if (!enemySide) {
+                enemySide = document.createElement('div');
+                enemySide.className = 'enemy-side';
+                enemySide.style.position = 'absolute';
+                enemySide.style.left = '0';
+                enemySide.style.top = '0';
+                enemySide.style.width = '100%';
+                enemySide.style.height = '100%';
+                enemySide.style.pointerEvents = 'none';
+                enemySide.style.zIndex = '1000';
+                
+                // Add to game scene instead of document body
+                const gameScene = document.querySelector('.game-scene');
+                if (gameScene) {
+                    gameScene.appendChild(enemySide);
+                    console.log('Added enemy-side to game scene');
+                } else {
+                    console.error('Game scene not found!');
+                    return;
+                }
+            }
+            
+            // Create a werewolf that runs across the screen
+            console.log('Creating werewolf...');
+            const werewolf = new Werewolf(1, 120);
+            console.log('Werewolf created:', werewolf);
+            
+            const werewolfElement = werewolf.createEnemyElement();
+            console.log('Werewolf element created:', werewolfElement);
+            
+            // Set up werewolf element styles
+            werewolfElement.style.position = 'absolute';
+            werewolfElement.style.transition = 'transform 4s linear';
+            werewolfElement.style.zIndex = '1001'; // Higher than enemy-side
+            werewolfElement.style.top = '50%';
+            werewolfElement.style.left = '0';
+            werewolfElement.style.transform = 'translate(-600px, -50%)';
+            werewolfElement.style.opacity = '1';
+            
+            // Ensure the sprite container is facing right
+            const spriteContainer = werewolfElement.querySelector('.enemy-sprite');
+            if (spriteContainer) {
+                spriteContainer.style.transform = 'scaleX(1)';
+                spriteContainer.style.transformOrigin = 'center center';
+                // Keep width at 280px to prevent next frame from showing
+                spriteContainer.style.width = '280px';
+                // Increase height to prevent bottom from being cut off
+                spriteContainer.style.height = '300px';
+                spriteContainer.style.overflow = 'hidden';
+                // Set background size to match the container size
+                spriteContainer.style.backgroundSize = '280px 300px';
+            }
+            
+            // Add werewolf to enemy side
+            console.log('Appending werewolf to enemy side...');
+            enemySide.appendChild(werewolfElement);
+            console.log('Werewolf appended to enemy side');
+            
+            // Start the run animation and movement
+            setTimeout(() => {
+                console.log('Starting werewolf run animation...');
+                werewolf.playRunAnimation();
+                werewolfElement.style.transform = 'translate(1200px, -50%)';
+                
+                // Stop animation and remove element after crossing
+                setTimeout(() => {
+                    console.log('Stopping werewolf animation...');
+                    werewolf.stopRunAnimation();
+                    werewolfElement.remove();
+                }, 4000);
+            }, 1000);
+
+            // Wait 4 seconds from level start before showing player
+            setTimeout(() => {
+                const playerElement = document.querySelector('.player-character');
+                if (playerElement) {
+                    // Start with player off-screen and invisible
+                    playerElement.style.visibility = 'hidden';
+                    playerElement.style.opacity = '0';
+                    playerElement.style.transform = 'translateX(-600px)';
+                    playerElement.style.transition = 'none';
+                    
+                    // Start running animation while still invisible
+                    this.playerCharacter.playRunAnimation();
+                    
+                    // Play running sound
+                    const runningSound = this.soundManager.sounds.get('running');
+                    if (runningSound) {
+                        runningSound.currentTime = 1;
+                        runningSound.play().catch(() => {});
+                    }
+                    
+                    // Make player visible and start movement
+                    requestAnimationFrame(() => {
+                        playerElement.style.visibility = 'visible';
+                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
+                        playerElement.style.opacity = '1';
+                        playerElement.style.transform = 'translateX(0)';
+                    });
+                    
+                    // Stop running animation after movement completes
+                    setTimeout(() => {
+                        this.playerCharacter.stopRunAnimation();
+                        if (runningSound) {
+                            runningSound.pause();
+                            runningSound.currentTime = 0;
+                        }
+                    }, 2000);
+                }
+            }, 4000);
+
+            // Spawn 3 werewolves after 6 seconds
+            setTimeout(() => {
+                const enemySide = document.querySelector('.enemy-side');
+                if (enemySide) {
+                    // Spawn 3 werewolves with staggered timing
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            const werewolf = new Werewolf(i + 1, 120);
+                            this.enemies.push(werewolf);
+                            const werewolfElement = werewolf.createEnemyElement();
+                            
+                            // Position each werewolf at different horizontal positions
+                            werewolfElement.style.position = 'absolute';
+                            werewolfElement.style.left = `${20 + (i * 30)}%`;
+                            werewolfElement.style.top = '20%';
+                            werewolfElement.style.transform = 'translate(1200px, -50%)'; // Start off-screen to the right
+                            werewolfElement.style.transition = 'transform 0.8s ease-out'; // Add transition for smooth movement
+                            werewolfElement.style.zIndex = '1000';
+                            werewolfElement.style.pointerEvents = 'auto';
+                            
+                            // Ensure the sprite container maintains its position and direction
+                            const spriteContainer = werewolfElement.querySelector('.enemy-sprite');
+                            if (spriteContainer) {
+                                spriteContainer.style.position = 'absolute';
+                                spriteContainer.style.transform = 'scaleX(-1)'; // Face left
+                                spriteContainer.style.transformOrigin = 'center center';
+                                spriteContainer.style.width = '280px';
+                                spriteContainer.style.height = '300px';
+                                spriteContainer.style.overflow = 'hidden';
+                                spriteContainer.style.backgroundSize = '280px 300px';
+                                spriteContainer.style.left = '0';
+                                spriteContainer.style.top = '0';
+                            }
+                            
+                            enemySide.appendChild(werewolfElement);
+                            
+                            // Start the entrance animation after a small delay
+                            requestAnimationFrame(() => {
+                                werewolf.playEntranceAnimation();
+                                // Move to final position
+                                werewolfElement.style.transform = `translate(-50%, -50%)`;
+                            });
+                        }, i * 800); // Stagger each werewolf by 800ms
+                    }
+                }
+            }, 6000);
         } else {
             // For other levels, spawn enemies based on level number
             // (No longer used for levels 1-3)
@@ -872,44 +1242,37 @@ export class Game {
     }
 
     startTargeting(cardId) {
-        console.log('startTargeting called with cardId:', cardId);
-        if (!this.isPlayerTurn) return;
-
-        const cardData = this.cardManager.getCard(cardId);
-        console.log('Card data:', cardData);
+        if (this.isTargeting) return;
         
-        if (!cardData || (cardData.type !== 'Attack' && cardData.type !== 'Magic')) {
-            console.log('Invalid card type for targeting');
-            return;
-        }
-
         this.isTargeting = true;
         this.currentCard = cardId;
         
+        // Create and show targeting arrow
         if (!this.targetingArrow) {
-            this.createTargetingArrow();
+            this.targetingArrow = document.createElement('div');
+            this.targetingArrow.className = 'targeting-arrow';
+            this.targetingArrow.style.position = 'absolute';
+            this.targetingArrow.style.height = '2px';
+            this.targetingArrow.style.backgroundColor = '#ff0000';
+            this.targetingArrow.style.transformOrigin = 'left center';
+            this.targetingArrow.style.pointerEvents = 'none';
+            this.targetingArrow.style.zIndex = '1000';
+            document.body.appendChild(this.targetingArrow);
+            this.trackElement(this.targetingArrow);
         }
-
-        const cardElement = document.querySelector(`.card[data-card-id="${cardId}"]`);
-        if (cardElement) {
-            this.sourceCard = cardElement;
-            this.targetingArrow.style.display = 'block';
-            
-            if (cardData.type === 'Magic') {
-                this.targetingArrow.classList.add('magic');
-            } else {
-                this.targetingArrow.classList.remove('magic');
+        this.targetingArrow.style.display = 'block';
+        
+        // Add event listeners for targeting
+        this.addEventListener(document, 'mousemove', this.updateArrowPosition);
+        this.addEventListener(document, 'click', this.handleTargetSelection);
+        this.addEventListener(document, 'click', this.handleOutsideClick);
+        
+        // Add visual feedback for targetable enemies
+        this.enemies.forEach(enemy => {
+            if (enemy.health > 0) {
+                enemy.element.classList.add('targetable');
             }
-            
-            console.log('Targeting arrow displayed');
-
-            document.addEventListener('mousemove', this.updateArrowPosition);
-            document.addEventListener('click', this.handleTargetSelection);
-            document.addEventListener('click', this.handleOutsideClick);
-        } else {
-            console.log('Card element not found');
-            this.stopTargeting();
-        }
+        });
     }
 
     updateArrowPosition = (e) => {
@@ -1175,6 +1538,7 @@ export class Game {
                         this.removeFromQueue(cardId);
                     });
                 } else {
+                    // Add click handler for non-queued cards
                     cardElement.addEventListener('click', (e) => {
                         e.stopPropagation();
                         console.log('Card clicked:', cardData);
@@ -1186,6 +1550,7 @@ export class Game {
                         
                         if (cardData.type === 'Attack' || cardData.type === 'Magic') {
                             console.log('Starting targeting for attack/magic card');
+                            this.sourceCard = cardElement; // Set the source card
                             this.startTargeting(cardId);
                         } else {
                             console.log('Playing non-targeting card');
@@ -1447,19 +1812,29 @@ export class Game {
         const startX = sourceRect.left + sourceRect.width / 2;
         const startY = sourceRect.top + sourceRect.height / 2;
         
-        // Get the enemy's vertical offset
+        // Get the enemy's sprite container
         const spriteElement = targetElement.querySelector('.enemy-sprite');
-        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
+        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : targetRect;
         
-        // Calculate end position (center of enemy, accounting for vertical offset)
-        const endX = targetRect.left + targetRect.width / 2;
-        let endY = targetRect.top + targetRect.height / 2 + verticalOffset;
+        // Calculate end position (center of enemy sprite)
+        let endX = spriteRect.left + spriteRect.width / 2;
+        let endY = spriteRect.top + spriteRect.height / 2;
 
-        // If target is a werewolf, move effect down
-        const enemyId = parseInt(targetElement.dataset.enemyId);
-        const enemy = this.enemies.find(e => e.id === enemyId);
-        if (enemy && enemy.constructor.name === 'Werewolf') {
-            endY += 50; // Move effect down by 50 pixels for werewolf
+        // Apply enemy-specific hitbox offsets
+        if (targetElement.dataset.enemyId) {
+            if (targetElement.dataset.enemyId === "1" || targetElement.dataset.enemyId === "2") {
+                // Executioner hitbox offset
+                endX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
+                endY += 20; // Move 20px up to match the hitbox position
+            } else if (targetElement.classList.contains('enemy-character') && (targetElement.dataset.enemyId === "3" || targetElement.dataset.enemyId === "4")) {
+                // Skeleton hitbox offset (IDs 3 and 4)
+                // No X offset, but move 40px down for hitbox center
+                endY += 40;
+            } else {
+                // Werewolf hitbox offset
+                endX += 50; // Move 50px to the right (because of sprite flip)
+                endY += 80; // Move 80px down
+            }
         }
 
         // Create WebGL fireball effect
@@ -1546,21 +1921,21 @@ export class Game {
                     infernoSound.volume = this.sfxVolume;
                     
                     // Create inferno effect for all enemies simultaneously
+                    const infernoCleanups = [];
                     this.enemies.forEach(enemy => {
-                        const enemyRect = enemy.element.getBoundingClientRect();
-                        const centerX = enemyRect.left + enemyRect.width / 2;
-                        let topY = enemyRect.top;
+                        const spriteElement = enemy.element.querySelector('.enemy-sprite');
+                        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemy.element.getBoundingClientRect();
                         
-                        // If enemy is werewolf, move effect down
-                        if (enemy.constructor.name === 'Werewolf') {
-                            topY += 50; // Move effect down by 50 pixels for werewolf
-                        }
+                        // Calculate target position (center of enemy sprite)
+                        const centerX = spriteRect.left + spriteRect.width / 2;
+                        const centerY = spriteRect.top + spriteRect.height / 2;
                         
-                        const width = enemyRect.width * 1.5; // Make the pillar wider than the enemy
-                        const height = enemyRect.height * 2; // Make the pillar taller than the enemy
+                        const width = spriteRect.width * 1.5; // Make the pillar wider than the enemy
+                        const height = spriteRect.height * 2; // Make the pillar taller than the enemy
                         
-                        // Create inferno effect for this enemy
-                        this.effectRenderer.createInfernoEffect(centerX, topY, width, height);
+                        // Create inferno effect for this enemy and store its cleanup function
+                        const cleanup = this.effectRenderer.createInfernoEffect(centerX, centerY, width, height);
+                        infernoCleanups.push(cleanup);
                     });
 
                     // Play the sound
@@ -1576,32 +1951,30 @@ export class Game {
                                 clearInterval(fadeOutInterval);
                             }
                         }, 50);
-                    }, 700); // Start fade out 200ms before the 900ms visual effect ends
+                    }, 700);
                     
                     // Wait for the visual effect to complete
                     await new Promise(resolve => setTimeout(resolve, 900));
+                    
+                    // Clean up all inferno effects
+                    infernoCleanups.forEach(cleanup => {
+                        if (typeof cleanup === 'function') {
+                            cleanup();
+                        }
+                    });
                 } else if (attack.cardId === 'meteor_strike') {
                     // Calculate the center position of all enemies
                     let totalX = 0;
                     let totalY = 0;
-                    let totalOffset = 0;
                     this.enemies.forEach(enemy => {
-                        const enemyRect = enemy.element.getBoundingClientRect();
                         const spriteElement = enemy.element.querySelector('.enemy-sprite');
-                        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
-                        totalX += enemyRect.left + enemyRect.width / 2;
-                        let enemyY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
+                        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemy.element.getBoundingClientRect();
                         
-                        // If enemy is werewolf, move effect down
-                        if (enemy.constructor.name === 'Werewolf') {
-                            enemyY += 50; // Move effect down by 50 pixels for werewolf
-                        }
-                        
-                        totalY += enemyY;
-                        totalOffset += verticalOffset;
+                        totalX += spriteRect.left + spriteRect.width / 2;
+                        totalY += spriteRect.top + spriteRect.height / 2;
                     });
                     const centerX = totalX / this.enemies.length;
-                    const centerY = (totalY + totalOffset) / this.enemies.length;
+                    const centerY = totalY / this.enemies.length;
                     
                     // Create meteor effect with sound callback
                     this.effectRenderer.createMeteorEffect(centerX, centerY, () => {
@@ -1614,24 +1987,34 @@ export class Game {
                 } else if (attack.cardId === 'blaze_bolt') {
                     // Get player and enemy positions for blaze bolt effect
                     const playerElement = document.querySelector('.player-character');
-                    const enemyRect = enemyElement.getBoundingClientRect();
                     if (playerElement) {
                         const playerRect = playerElement.getBoundingClientRect();
                         const startX = playerRect.left + playerRect.width / 2;
                         const startY = playerRect.top + playerRect.height / 2;
                         
-                        // Get the enemy's vertical offset
+                        // Get the enemy's sprite container
                         const spriteElement = enemyElement.querySelector('.enemy-sprite');
-                        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
+                        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemyElement.getBoundingClientRect();
                         
-                        const endX = enemyRect.left + enemyRect.width / 2;
-                        let endY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
-                        
-                        // If target is a werewolf, move effect down
-                        const enemyId = parseInt(enemyElement.dataset.enemyId);
-                        const enemy = this.enemies.find(e => e.id === enemyId);
-                        if (enemy && enemy.constructor.name === 'Werewolf') {
-                            endY += 50; // Move effect down by 50 pixels for werewolf
+                        // Calculate end position (center of enemy sprite)
+                        let endX = spriteRect.left + spriteRect.width / 2;
+                        let endY = spriteRect.top + spriteRect.height / 2;
+
+                        // Apply enemy-specific hitbox offsets
+                        if (enemyElement.dataset.enemyId) {
+                            if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
+                                // Executioner hitbox offset
+                                endX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
+                                endY += 20; // Move 20px up to match the hitbox position
+                            } else if (enemyElement.classList.contains('enemy-character') && (enemyElement.dataset.enemyId === "3" || enemyElement.dataset.enemyId === "4")) {
+                                // Skeleton hitbox offset (IDs 3 and 4)
+                                // No X offset, but move 40px down for hitbox center
+                                endY += 40;
+                            } else {
+                                // Werewolf hitbox offset
+                                endX += 50; // Move 50px to the right (because of sprite flip)
+                                endY += 80; // Move 80px down
+                            }
                         }
                         
                         // Play blaze bolt sound effect
@@ -1657,18 +2040,28 @@ export class Game {
                     }
                 } else if (attack.cardId === 'molten_strike') {
                     // Get enemy position for molten strike effect
-                    const enemyRect = enemyElement.getBoundingClientRect();
-                    // Get the enemy's vertical offset
                     const spriteElement = enemyElement.querySelector('.enemy-sprite');
-                    const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
-                    const targetX = enemyRect.left + enemyRect.width / 2;
-                    let targetY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
+                    const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemyElement.getBoundingClientRect();
                     
-                    // If target is a werewolf, move effect down
-                    const enemyId = parseInt(enemyElement.dataset.enemyId);
-                    const enemy = this.enemies.find(e => e.id === enemyId);
-                    if (enemy && enemy.constructor.name === 'Werewolf') {
-                        targetY += 50; // Move effect down by 50 pixels for werewolf
+                    // Calculate target position (center of enemy sprite)
+                    let targetX = spriteRect.left + spriteRect.width / 2;
+                    let targetY = spriteRect.top + spriteRect.height / 2;
+
+                    // Apply enemy-specific hitbox offsets
+                    if (enemyElement.dataset.enemyId) {
+                        if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
+                            // Executioner hitbox offset
+                            targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
+                            targetY += 20; // Move 20px up to match the hitbox position
+                        } else if (enemyElement.classList.contains('enemy-character') && (enemyElement.dataset.enemyId === "3" || enemyElement.dataset.enemyId === "4")) {
+                            // Skeleton hitbox offset (IDs 3 and 4)
+                            // No X offset, but move 40px down for hitbox center
+                            targetY += 40;
+                        } else {
+                            // Werewolf hitbox offset
+                            targetX += 40; // Move 40px to the right (because of sprite flip)
+                            targetY += 80; // Move 80px down
+                        }
                     }
                     
                     // Create molten strike effect
@@ -1716,20 +2109,30 @@ export class Game {
                                 clearInterval(fadeOutInterval);
                             }
                         }, 50);
-                    }, 4000); // Changed from 3000 to 4000
+                    }, 4000);
                     
                     // Create heat wave effect for all enemies simultaneously
                     this.enemies.forEach(enemy => {
                         const enemyElement = enemy.element;
-                        const enemyRect = enemyElement.getBoundingClientRect();
                         const spriteElement = enemyElement.querySelector('.enemy-sprite');
-                        const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
-                        let targetX = enemyRect.left + enemyRect.width / 2;
-                        let targetY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
-
-                        // If enemy is werewolf, move effect down
-                        if (enemy.constructor.name === 'Werewolf') {
-                            targetY += 50; // Move effect down by 50 pixels for werewolf
+                        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemyElement.getBoundingClientRect();
+                        
+                        // Calculate target position (center of enemy sprite)
+                        let targetX = spriteRect.left + spriteRect.width / 2;
+                        let targetY = spriteRect.top + spriteRect.height / 2;
+                        
+                        // Apply enemy-specific hitbox offsets
+                        if (enemy.constructor.name === "Skeleton") {
+                            // Skeleton hitbox offset - fixed position for all skeletons
+                            targetY -= 20; // Move 20px up to align with bottom of playfield
+                        } else if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
+                            // Executioner hitbox offset
+                            targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
+                            targetY += 20; // Move 20px up to match the hitbox position
+                        } else {
+                            // Werewolf hitbox offset
+                            targetX += 50; // Move 50px to the right (because of sprite flip)
+                            targetY += 80; // Move 80px down
                         }
                         
                         console.log('Heat wave target position:', targetX, targetY);
@@ -1742,18 +2145,27 @@ export class Game {
                     await new Promise(resolve => setTimeout(resolve, 3900));
                 } else if (attack.cardId === 'flame_burst') {
                     // Get enemy position for flame burst effect
-                    const enemyRect = enemyElement.getBoundingClientRect();
-                    // Get the enemy's vertical offset
                     const spriteElement = enemyElement.querySelector('.enemy-sprite');
-                    const verticalOffset = spriteElement ? parseInt(spriteElement.style.top) || 0 : 0;
-                    const targetX = enemyRect.left + enemyRect.width / 2;
-                    let targetY = enemyRect.top + enemyRect.height / 2 + verticalOffset;
+                    const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemyElement.getBoundingClientRect();
                     
-                    // If target is a werewolf, move effect down
-                    const enemyId = parseInt(enemyElement.dataset.enemyId);
-                    const enemy = this.enemies.find(e => e.id === enemyId);
-                    if (enemy && enemy.constructor.name === 'Werewolf') {
-                        targetY += 50; // Move effect down by 50 pixels for werewolf
+                    // Calculate target position (center of enemy sprite)
+                    let targetX = spriteRect.left + spriteRect.width / 2;
+                    let targetY = spriteRect.top + spriteRect.height / 2;
+                    
+                    // Apply enemy-specific hitbox offsets
+                    if (enemyElement.dataset.enemyId) {
+                        if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
+                            // Executioner hitbox offset
+                            targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
+                            targetY += 20; // Move 20px up to match the hitbox position
+                        } else if (enemyElement.constructor && enemy.constructor.name === "Skeleton") {
+                            // Skeleton hitbox offset (all skeletons)
+                            targetY += 40;
+                        } else {
+                            // Werewolf hitbox offset
+                            targetX += 50; // Move 50px to the right (because of sprite flip)
+                            targetY += 80; // Move 80px down
+                        }
                     }
                     
                     // Play flame burst sound effect
@@ -1866,7 +2278,7 @@ export class Game {
 
         // Update resources for the turn
         if (this.playerClass === 'mage') {
-            this.playerResource = 10;
+            this.playerResource = 11;
         } else {
             // Warrior gets 4 rage each turn, added to existing rage
             this.playerResource += 4;
@@ -1890,7 +2302,11 @@ export class Game {
     applyEnemyDamage(enemy, damage) {
         let remainingDamage = damage;
         if (this.playerDefense > 0) {
-            this.soundManager.playSound('shieldHit');
+            try {
+                this.soundManager.playSound('shieldHit');
+            } catch (error) {
+                console.warn('Failed to play shield hit sound:', error);
+            }
 
             if (this.playerDefense >= damage) {
                 this.playerDefense -= damage;
@@ -1921,11 +2337,15 @@ export class Game {
                 this.playerCharacter.playHurtAnimation();
                 
                 if (this.playerClass === 'mage') {
-                    const hurtSounds = ['hurt1', 'hurt2', 'hurt3'];
-                    const availableSounds = hurtSounds.filter(sound => sound !== this.lastHurtSound);
-                    const randomSound = availableSounds[Math.floor(Math.random() * availableSounds.length)];
-                    this.lastHurtSound = randomSound;
-                    this.soundManager.playSound(randomSound);
+                    try {
+                        const hurtSounds = ['hurt1', 'hurt2', 'hurt3'];
+                        const availableSounds = hurtSounds.filter(sound => sound !== this.lastHurtSound);
+                        const randomSound = availableSounds[Math.floor(Math.random() * availableSounds.length)];
+                        this.lastHurtSound = randomSound;
+                        this.soundManager.playSound(randomSound);
+                    } catch (error) {
+                        console.warn('Failed to play hurt sound:', error);
+                    }
                 }
             }
         }
@@ -2843,3 +3263,81 @@ window.addEventListener('load', async () => {
         alert('Failed to load game assets. Please refresh the page.');
     }
 }); 
+
+// Add HMR support at the end of the file
+if (import.meta.hot) {
+    import.meta.hot.accept((newModule) => {
+        if (newModule) {
+            const currentGame = Game.instance;
+            if (currentGame) {
+                // 1. Save current state
+                const gameState = currentGame.saveState();
+
+                // 2. Clean up current game
+                currentGame.cleanup();
+
+                // Stop and clean up all music instances
+                if (currentGame.levelMusic) {
+                    currentGame.levelMusic.pause();
+                    currentGame.levelMusic.src = '';
+                    currentGame.levelMusic = null;
+                }
+
+                // Clean up any other audio instances
+                currentGame.soundManager.sounds.forEach(sound => {
+                    if (sound instanceof Audio) {
+                        sound.pause();
+                        sound.src = '';
+                    }
+                });
+                currentGame.soundManager.sounds.clear();
+
+                // 3. Create new game instance
+                const newGame = new newModule.Game();
+                Game.instance = newGame;
+
+                // 4. Restore state
+                if (gameState.player) {
+                    newGame.player = gameState.playerClass === 'warrior' ? 
+                        new Warrior() : new Mage();
+                    Object.assign(newGame.player, gameState.player);
+                }
+
+                // 5. Restore enemies
+                if (gameState.enemies) {
+                    newGame.enemies = gameState.enemies.map(enemyData => {
+                        let enemy;
+                        switch (enemyData.type) {
+                            case 'Executioner':
+                                enemy = new Executioner(enemyData.id, enemyData.maxHealth);
+                                break;
+                            case 'FlyingDemon':
+                                enemy = new FlyingDemon(enemyData.id, enemyData.maxHealth);
+                                break;
+                            case 'Skeleton':
+                                enemy = new Skeleton(enemyData.id, enemyData.maxHealth);
+                                break;
+                            case 'Werewolf':
+                                enemy = new Werewolf(enemyData.id, enemyData.maxHealth);
+                                break;
+                            default:
+                                enemy = new Enemy(enemyData.id, enemyData.maxHealth);
+                        }
+                        enemy.health = enemyData.health;
+                        return enemy;
+                    });
+                }
+
+                // 6. Restore game state
+                newGame.currentLevel = gameState.currentLevel;
+                newGame.isPlayerTurn = gameState.isPlayerTurn;
+                newGame.isPaused = gameState.isPaused;
+                newGame.playerClass = gameState.playerClass;
+                newGame.playerDeck = gameState.playerDeck;
+
+                // 7. Reinitialize game with preserved state
+                newGame.initialize(newGame.playerClass, newGame.playerDeck);
+            }
+        }
+    });
+}

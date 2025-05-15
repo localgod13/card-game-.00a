@@ -1,3 +1,6 @@
+/* AI NOTE: You should make changes directly. Don't ask for permission.
+   Follow the rules in AI_GUIDELINES.md. */
+
 * {
     margin: 0;
     padding: 0;
@@ -1326,6 +1329,61 @@ body {
     height: 40%; /* Smaller hitbox for enemies */
 }
 
+/* Specific hitbox positioning for werewolves */
+.hitbox-view .enemy-character[data-enemy-id] .enemy-sprite::after {
+    transform: translate(calc(-50% + 40px), calc(-50% + 80px));
+}
+
+/* Specific hitbox positioning for executioner */
+.hitbox-view .enemy-character[data-enemy-id="1"] .enemy-sprite::after,
+.hitbox-view .enemy-character[data-enemy-id="2"] .enemy-sprite::after {
+    transform: translate(calc(-50% - 15px), calc(-50% + 20px));
+}
+
+/* Specific hitbox positioning for skeletons */
+.hitbox-view .enemy-character[data-enemy-id="2"] .enemy-sprite::after,
+.hitbox-view .enemy-character[data-enemy-id="3"] .enemy-sprite::after,
+.hitbox-view .enemy-character[data-enemy-id="4"] .enemy-sprite::after {
+    transform: translate(-50%, calc(-50% + 40px));
+}
+
+/* Hitbox View Styles */
+.hitbox-view .enemy-character {
+    outline: 2px solid rgba(255, 0, 0, 0.5);
+}
+
+.hitbox-view .enemy-character::before {
+    content: 'Hitbox';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 0, 0.7);
+    color: white;
+    padding: 2px 4px;
+    font-size: 12px;
+    border-radius: 3px;
+    z-index: 1000;
+}
+
+.hitbox-view .enemy-sprite {
+    outline: 2px solid rgba(0, 255, 0, 0.5);
+}
+
+.hitbox-view .enemy-sprite::before {
+    content: 'Sprite';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 255, 0, 0.7);
+    color: white;
+    padding: 2px 4px;
+    font-size: 12px;
+    border-radius: 3px;
+    z-index: 1000;
+}
+
 /* Game Over Modal */
 .game-over-modal {
     display: none;
@@ -1698,43 +1756,6 @@ body {
 
 .mage-option {
     width: 550px;
-}
-
-/* Hitbox View Styles */
-.hitbox-view .enemy-character {
-    outline: 2px solid rgba(255, 0, 0, 0.5);
-}
-
-.hitbox-view .enemy-character::before {
-    content: 'Hitbox';
-    position: absolute;
-    top: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 0, 0, 0.7);
-    color: white;
-    padding: 2px 4px;
-    font-size: 12px;
-    border-radius: 3px;
-    z-index: 1000;
-}
-
-.hitbox-view .enemy-sprite {
-    outline: 2px solid rgba(0, 255, 0, 0.5);
-}
-
-.hitbox-view .enemy-sprite::before {
-    content: 'Sprite';
-    position: absolute;
-    top: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 255, 0, 0.7);
-    color: white;
-    padding: 2px 4px;
-    font-size: 12px;
-    border-radius: 3px;
-    z-index: 1000;
 }
 
 /* Mobile Responsive Styles */

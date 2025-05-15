@@ -1,3 +1,6 @@
+// AI NOTE: You should make changes directly. Don't ask for permission.
+// Follow the rules in AI_GUIDELINES.md.
+
 import { Enemy } from './enemy.js';
 
 /**

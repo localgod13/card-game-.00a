@@ -120,8 +120,7 @@ export class Executioner extends Enemy {
 
     playHurtAnimation() {
         if (this.isHurt) return;
-        
-        this.isHurt = true;
+        if (!this.element) return;
         let hurtFrame = 0;
         
         const spriteContainer = this.element.querySelector('.enemy-sprite');

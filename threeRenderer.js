@@ -689,6 +689,7 @@ export class ThreeRenderer {
         distortion.position.set(x, y, 0);
         infernoGroup.add(distortion);
 
+        let isDestroyed = false;
         const effect = {
             group: infernoGroup,
             pillar,
@@ -752,15 +753,38 @@ export class ThreeRenderer {
                 
                 // Check if effect is complete
                 if (elapsed > effect.duration) {
-                    effect.active = false;
-                    this.scene.remove(effect.group);
-                    this.effects.delete(effect);
+                    cleanup();
                 }
             }
         };
 
+        const cleanup = () => {
+            if (isDestroyed) return;
+            isDestroyed = true;
+            effect.active = false;
+            if (this.scene) {
+                this.scene.remove(effect.group);
+            }
+            if (effect.pillar) {
+                effect.pillar.geometry.dispose();
+                effect.pillar.material.dispose();
+            }
+            if (effect.embers) {
+                effect.embers.geometry.dispose();
+                effect.embers.material.dispose();
+            }
+            if (effect.distortion) {
+                effect.distortion.geometry.dispose();
+                effect.distortion.material.dispose();
+            }
+            this.effects.delete(effect);
+        };
+
         this.effects.set(Date.now(), effect);
         this.animate();
+
+        // Return cleanup function
+        return cleanup;
     }
 
     createFireBoltEffect(startX, startY, endX, endY) {
@@ -785,6 +809,12 @@ export class ThreeRenderer {
         // Load the Blaze texture
         const textureLoader = new THREE.TextureLoader();
         const blazeTexture = textureLoader.load('assets/Images/Blaze.png');
+
+        // Prevent texture bleeding
+        blazeTexture.wrapS = THREE.ClampToEdgeWrapping;
+        blazeTexture.wrapT = THREE.ClampToEdgeWrapping;
+        blazeTexture.minFilter = THREE.LinearFilter;
+        blazeTexture.magFilter = THREE.LinearFilter;
 
         // Create bolt geometry - using a square for the traveling image
         const geometry = new THREE.PlaneGeometry(100, 100);
@@ -1106,9 +1136,11 @@ export class ThreeRenderer {
         const textureLoader = new THREE.TextureLoader();
         const heatWaveTexture = textureLoader.load('assets/Sprites/fire/burning_loop_1.png');
         
-        // Set up the texture properly
-        heatWaveTexture.wrapS = THREE.RepeatWrapping;
-        heatWaveTexture.wrapT = THREE.RepeatWrapping;
+        // Set up the texture properly to prevent bleeding
+        heatWaveTexture.wrapS = THREE.ClampToEdgeWrapping;
+        heatWaveTexture.wrapT = THREE.ClampToEdgeWrapping;
+        heatWaveTexture.minFilter = THREE.LinearFilter;
+        heatWaveTexture.magFilter = THREE.LinearFilter;
         heatWaveTexture.repeat.set(1/8, 1);
         heatWaveTexture.offset.set(0, 0);
         
@@ -1117,7 +1149,8 @@ export class ThreeRenderer {
             map: heatWaveTexture,
             transparent: true,
             blending: THREE.AdditiveBlending,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            depthWrite: false
         });
 
         const heatWave = new THREE.Mesh(geometry, material);
@@ -1148,7 +1181,8 @@ export class ThreeRenderer {
                 if (now - lastFrameTime >= frameDuration) {
                     currentFrame = (currentFrame + 1) % 8;
                     if (heatWave.material && heatWave.material.map) {
-                        heatWave.material.map.offset.x = currentFrame / 8;
+                        // Update texture offset with precise calculations
+                        heatWave.material.map.offset.x = (currentFrame * (1/8));
                     }
                     lastFrameTime = now;
 
@@ -1169,9 +1203,9 @@ export class ThreeRenderer {
             if (isDestroyed) return;
             isDestroyed = true;
             
-                    effect.active = false;
+            effect.active = false;
             if (this.scene) {
-                    this.scene.remove(effect.group);
+                this.scene.remove(effect.group);
             }
             if (heatWave.material) {
                 heatWave.material.dispose();
@@ -1182,7 +1216,7 @@ export class ThreeRenderer {
             if (heatWaveTexture) {
                 heatWaveTexture.dispose();
             }
-                    this.effects.delete(effect);
+            this.effects.delete(effect);
         };
 
         // Store effect with unique ID
@@ -1437,9 +1471,11 @@ export class ThreeRenderer {
         const textureLoader = new THREE.TextureLoader();
         const flameTexture = textureLoader.load('assets/Sprites/fire/burning_loop_4.png');
 
-        // Set up flame texture
-        flameTexture.wrapS = THREE.RepeatWrapping;
-        flameTexture.wrapT = THREE.RepeatWrapping;
+        // Prevent texture bleeding
+        flameTexture.wrapS = THREE.ClampToEdgeWrapping;
+        flameTexture.wrapT = THREE.ClampToEdgeWrapping;
+        flameTexture.minFilter = THREE.LinearFilter;
+        flameTexture.magFilter = THREE.LinearFilter;
         flameTexture.repeat.set(1/6, 1);
         flameTexture.offset.set(0, 0);
 
