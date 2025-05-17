@@ -355,6 +355,12 @@ export class Werewolf extends Enemy {
                     setTimeout(() => {
                         if (this.element && this.element.parentNode) {
                             this.element.parentNode.removeChild(this.element);
+                            // Set hasRunAway flag
+                            this.hasRunAway = true;
+                            // Remove from Game's enemies array if present
+                            if (window.Game && window.Game.instance) {
+                                window.Game.instance.enemies = window.Game.instance.enemies.filter(e => e !== this);
+                            }
                             // Dispatch custom event for level completion
                             const levelCompleteEvent = new CustomEvent('levelComplete', {
                                 detail: { level: 6 }
@@ -388,11 +394,18 @@ export class Werewolf extends Enemy {
 
     // Lower the werewolf's hitbox for targeting
     getHitboxOffsetY() {
-        return 180; // Increased from 120 to 180 pixels to move hitbox lower
+        return 80; // Standardized to 80 pixels down
     }
 
     // Move the werewolf's hitbox to the left
     getHitboxOffsetX() {
-        return -40; // Move hitbox 40 pixels to the left
+        return 50; // Standardized to 50 pixels right (accounting for sprite flip)
+    }
+
+    createEnemyElement() {
+        // Call the base method
+        const enemyElement = super.createEnemyElement();
+        enemyElement.classList.add('werewolf');
+        return enemyElement;
     }
 } 

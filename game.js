@@ -13,6 +13,7 @@ import { Mage } from './mage.js';
 import { Preloader } from './preloader.js';
 import { ThreeRenderer } from './threeRenderer.js';
 import { Werewolf } from './werewolf.js';
+import { Backpack } from './backpack.js';
 
 class Card {
     constructor(name, attack, defense, cost) {
@@ -70,15 +71,20 @@ class PlayerCharacter {
     }
 
     createPlayerElement() {
-        const playerElement = this.trackElement(document.createElement('div'));
+        const playerElement = document.createElement('div');
         playerElement.className = 'player-character';
+        playerElement.style.position = 'relative';
         
         // Create sprite container
-        const spriteContainer = this.trackElement(document.createElement('div'));
+        const spriteContainer = document.createElement('div');
         spriteContainer.className = 'player-sprite';
         spriteContainer.style.width = `${this.frameWidth * 4}px`; // 4x larger
         spriteContainer.style.height = `${this.frameHeight * 4}px`; // 4x larger
         spriteContainer.style.backgroundImage = `url(${this.spriteSheet})`;
+        spriteContainer.style.position = 'absolute';
+        spriteContainer.style.left = '50%';
+        spriteContainer.style.top = '50%';
+        spriteContainer.style.transform = 'translate(-50%, -50%)';
         
         // Dynamically set background size based on frame dimensions and total frames
         const bgWidth = this.frameWidth * this.totalFrames * 4;
@@ -87,6 +93,11 @@ class PlayerCharacter {
         
         playerElement.appendChild(spriteContainer);
         this.element = playerElement;
+        
+        // Track the element using Game instance
+        if (Game.instance) {
+            Game.instance.trackElement(playerElement);
+        }
         
         // Start animation
         this.startAnimation();
@@ -425,7 +436,12 @@ export class Game {
             'click': './assets/Audio/click.mp3',
             'wolfdead': './assets/Audio/wolfdead.mp3',
             'howl': './assets/Audio/howl.mp3',
-            'exdeath': './assets/Audio/exdeath.mp3'
+            'exdeath': './assets/Audio/exdeath.mp3',
+            'forestexit': './assets/Audio/forestexit.mp3',
+            'townnar': './assets/Audio/townnar.mp3',
+            'closed1': './assets/Audio/closed1.mp3',
+            'closed2': './assets/Audio/closed2.mp3',
+            'closed3': './assets/Audio/closed3.mp3'
         };
 
         // Load each sound effect
@@ -433,7 +449,7 @@ export class Game {
             this.soundManager.loadSound(id, path);
         });
 
-        this.maxLevel = 7;
+        this.maxLevel = 9;
         this.isLevelTransitioning = false;
 
         // Add keydown event listener for X key kill functionality
@@ -473,6 +489,13 @@ export class Game {
                 this.handleLevel6Completion();
             }
         });
+
+        this.showInventoryGrid = false;
+        this.backpack = new Backpack(this);
+
+        this.interactableRectsVisible = false; // Track visibility of interactable rectangles
+        this.previousLevel = null; // Track previous level
+        this.lastClosedSound = null;
     }
 
     // Method to track intervals
@@ -607,8 +630,11 @@ export class Game {
             this.playerHealth = mage.health;
             this.playerDefense = mage.defense;
             this.maxResource = mage.maxResource;
-            this.playerResource = 11;
+            this.playerResource = 10;
             this.playerCharacter = mage;
+            // Give mage a health potion in backpack slot 8 and mana potion in slot 9
+            this.backpack.addItem('healthpotion', 8);
+            this.backpack.addItem('manapotion', 9);
         }
 
         // Show the game scene
@@ -642,6 +668,21 @@ export class Game {
         levelSelectorContainer.style.backgroundColor = '#333';
         levelSelectorContainer.style.borderRadius = '3px';
 
+        // Toggle interactable rectangles button
+        const toggleRectsBtn = document.createElement('button');
+        toggleRectsBtn.textContent = 'Toggle Doors';
+        toggleRectsBtn.style.display = 'block';
+        toggleRectsBtn.style.width = '100%';
+        toggleRectsBtn.style.margin = '5px 0';
+        toggleRectsBtn.style.padding = '5px';
+        toggleRectsBtn.style.backgroundColor = '#4CAF50';
+        toggleRectsBtn.style.color = 'white';
+        toggleRectsBtn.style.border = 'none';
+        toggleRectsBtn.style.borderRadius = '3px';
+        toggleRectsBtn.style.cursor = 'pointer';
+        toggleRectsBtn.onclick = () => this.toggleInteractableRects();
+        levelSelectorContainer.appendChild(toggleRectsBtn);
+
         const levelSelectorLabel = document.createElement('div');
         levelSelectorLabel.textContent = 'Select Level:';
         levelSelectorLabel.style.marginBottom = '5px';
@@ -657,8 +698,8 @@ export class Game {
         levelSelector.style.borderRadius = '3px';
         levelSelector.style.cursor = 'pointer';
 
-        // Add options for each level, including level 6
-        for (let i = 1; i <= 7; i++) {
+        // Add options for each level up to 9
+        for (let i = 1; i <= this.maxLevel; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -679,6 +720,8 @@ export class Game {
     }
 
     initializeGame() {
+        // Always remove inn/town boxes at the start of any level
+        document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
         // Initialize player character
         const playerSide = document.querySelector('.player-side');
         if (playerSide) {
@@ -964,14 +1007,11 @@ export class Game {
                 });
             });
         } else if (this.currentLevel === 7) {
-            // Level 7: No enemies yet
-            console.log('Level 7 initialized - no enemies');
-            
+            // Level 7: Werewolf cinematic and 3 werewolves spawn
             // Create player element first but keep it hidden
             const playerSide = document.querySelector('.player-side');
             if (playerSide) {
                 playerSide.innerHTML = '';
-                
                 // Create player element with the already initialized playerCharacter
                 const playerElement = this.playerCharacter.createPlayerElement();
                 playerElement.setAttribute('data-class', this.playerClass);
@@ -979,12 +1019,10 @@ export class Game {
                 playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
                 playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
                 playerElement.style.transition = 'none';  // No transition initially
-                
                 // Add shield aura
                 const shieldAura = document.createElement('div');
                 shieldAura.className = 'shield-aura';
                 playerElement.appendChild(shieldAura);
-                
                 // Create stats container
                 const statsContainer = document.createElement('div');
                 statsContainer.className = 'character-stats';
@@ -1004,12 +1042,10 @@ export class Game {
                     </div>
                     <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
                 `;
-                
                 // Add elements to player side
                 playerSide.appendChild(playerElement);
                 playerSide.appendChild(statsContainer);
             }
-            
             // Create enemy-side element if it doesn't exist
             let enemySide = document.querySelector('.enemy-side');
             if (!enemySide) {
@@ -1022,7 +1058,6 @@ export class Game {
                 enemySide.style.height = '100%';
                 enemySide.style.pointerEvents = 'none';
                 enemySide.style.zIndex = '1000';
-                
                 // Add to game scene instead of document body
                 const gameScene = document.querySelector('.game-scene');
                 if (gameScene) {
@@ -1033,86 +1068,54 @@ export class Game {
                     return;
                 }
             }
-            
-            // Create a werewolf that runs across the screen
-            console.log('Creating werewolf...');
+            // Cinematic: werewolf runs across the screen
             const werewolf = new Werewolf(1, 120);
-            console.log('Werewolf created:', werewolf);
-            
             const werewolfElement = werewolf.createEnemyElement();
-            console.log('Werewolf element created:', werewolfElement);
-            
-            // Set up werewolf element styles
             werewolfElement.style.position = 'absolute';
             werewolfElement.style.transition = 'transform 4s linear';
-            werewolfElement.style.zIndex = '1001'; // Higher than enemy-side
+            werewolfElement.style.zIndex = '1001';
             werewolfElement.style.top = '50%';
             werewolfElement.style.left = '0';
             werewolfElement.style.transform = 'translate(-600px, -50%)';
             werewolfElement.style.opacity = '1';
-            
-            // Ensure the sprite container is facing right
             const spriteContainer = werewolfElement.querySelector('.enemy-sprite');
             if (spriteContainer) {
                 spriteContainer.style.transform = 'scaleX(1)';
                 spriteContainer.style.transformOrigin = 'center center';
-                // Keep width at 280px to prevent next frame from showing
                 spriteContainer.style.width = '280px';
-                // Increase height to prevent bottom from being cut off
                 spriteContainer.style.height = '300px';
                 spriteContainer.style.overflow = 'hidden';
-                // Set background size to match the container size
                 spriteContainer.style.backgroundSize = '280px 300px';
             }
-            
-            // Add werewolf to enemy side
-            console.log('Appending werewolf to enemy side...');
             enemySide.appendChild(werewolfElement);
-            console.log('Werewolf appended to enemy side');
-            
-            // Start the run animation and movement
             setTimeout(() => {
-                console.log('Starting werewolf run animation...');
                 werewolf.playRunAnimation();
                 werewolfElement.style.transform = 'translate(1200px, -50%)';
-                
-                // Stop animation and remove element after crossing
                 setTimeout(() => {
-                    console.log('Stopping werewolf animation...');
                     werewolf.stopRunAnimation();
                     werewolfElement.remove();
                 }, 4000);
             }, 1000);
-
             // Wait 4 seconds from level start before showing player
             setTimeout(() => {
                 const playerElement = document.querySelector('.player-character');
                 if (playerElement) {
-                    // Start with player off-screen and invisible
                     playerElement.style.visibility = 'hidden';
                     playerElement.style.opacity = '0';
                     playerElement.style.transform = 'translateX(-600px)';
                     playerElement.style.transition = 'none';
-                    
-                    // Start running animation while still invisible
                     this.playerCharacter.playRunAnimation();
-                    
-                    // Play running sound
                     const runningSound = this.soundManager.sounds.get('running');
                     if (runningSound) {
                         runningSound.currentTime = 1;
                         runningSound.play().catch(() => {});
                     }
-                    
-                    // Make player visible and start movement
                     requestAnimationFrame(() => {
                         playerElement.style.visibility = 'visible';
                         playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
                         playerElement.style.opacity = '1';
                         playerElement.style.transform = 'translateX(0)';
                     });
-                    
-                    // Stop running animation after movement completes
                     setTimeout(() => {
                         this.playerCharacter.stopRunAnimation();
                         if (runningSound) {
@@ -1122,32 +1125,26 @@ export class Game {
                     }, 2000);
                 }
             }, 4000);
-
             // Spawn 3 werewolves after 6 seconds
             setTimeout(() => {
                 const enemySide = document.querySelector('.enemy-side');
                 if (enemySide) {
-                    // Spawn 3 werewolves with staggered timing
                     for (let i = 0; i < 3; i++) {
                         setTimeout(() => {
                             const werewolf = new Werewolf(i + 1, 120);
                             this.enemies.push(werewolf);
                             const werewolfElement = werewolf.createEnemyElement();
-                            
-                            // Position each werewolf at different horizontal positions
                             werewolfElement.style.position = 'absolute';
                             werewolfElement.style.left = `${20 + (i * 30)}%`;
                             werewolfElement.style.top = '20%';
-                            werewolfElement.style.transform = 'translate(1200px, -50%)'; // Start off-screen to the right
-                            werewolfElement.style.transition = 'transform 0.8s ease-out'; // Add transition for smooth movement
+                            werewolfElement.style.transform = 'translate(1200px, -50%)';
+                            werewolfElement.style.transition = 'transform 0.8s ease-out';
                             werewolfElement.style.zIndex = '1000';
                             werewolfElement.style.pointerEvents = 'auto';
-                            
-                            // Ensure the sprite container maintains its position and direction
                             const spriteContainer = werewolfElement.querySelector('.enemy-sprite');
                             if (spriteContainer) {
                                 spriteContainer.style.position = 'absolute';
-                                spriteContainer.style.transform = 'scaleX(-1)'; // Face left
+                                spriteContainer.style.transform = 'scaleX(-1)';
                                 spriteContainer.style.transformOrigin = 'center center';
                                 spriteContainer.style.width = '280px';
                                 spriteContainer.style.height = '300px';
@@ -1156,19 +1153,387 @@ export class Game {
                                 spriteContainer.style.left = '0';
                                 spriteContainer.style.top = '0';
                             }
-                            
                             enemySide.appendChild(werewolfElement);
-                            
-                            // Start the entrance animation after a small delay
                             requestAnimationFrame(() => {
                                 werewolf.playEntranceAnimation();
-                                // Move to final position
                                 werewolfElement.style.transform = `translate(-50%, -50%)`;
                             });
-                        }, i * 800); // Stagger each werewolf by 800ms
+                        }, i * 800);
                     }
                 }
             }, 6000);
+        } else if (this.currentLevel === 8) {
+            // Level 8: No enemies, just player intro
+            console.log(`Level ${this.currentLevel} initialized - no enemies`);
+            // Create player element first but keep it hidden
+            const playerSide = document.querySelector('.player-side');
+            if (playerSide) {
+                playerSide.innerHTML = '';
+                // Create player element with the already initialized playerCharacter
+                const playerElement = this.playerCharacter.createPlayerElement();
+                playerElement.setAttribute('data-class', this.playerClass);
+                playerElement.style.opacity = '0';  // Start hidden
+                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
+                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
+                playerElement.style.transition = 'none';  // No transition initially
+                // Add shield aura
+                const shieldAura = document.createElement('div');
+                shieldAura.className = 'shield-aura';
+                playerElement.appendChild(shieldAura);
+                // Create stats container
+                const statsContainer = document.createElement('div');
+                statsContainer.className = 'character-stats';
+                statsContainer.style.position = 'absolute';
+                statsContainer.style.left = '0';
+                statsContainer.style.bottom = '0';
+                statsContainer.innerHTML = `
+                    <div class="health-bar">
+                        <div class="health-bar-fill" style="width: 100%"></div>
+                    </div>
+                    <div class="defense-bar">
+                        <div class="defense-bar-fill" style="width: 0%"></div>
+                        <div class="defense-text">Defense: 0</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
+                    </div>
+                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
+                `;
+                // Add elements to player side
+                playerSide.appendChild(playerElement);
+                playerSide.appendChild(statsContainer);
+            }
+            // Create enemy-side element if it doesn't exist
+            let enemySide = document.querySelector('.enemy-side');
+            if (!enemySide) {
+                enemySide = document.createElement('div');
+                enemySide.className = 'enemy-side';
+                enemySide.style.position = 'absolute';
+                enemySide.style.left = '0';
+                enemySide.style.top = '0';
+                enemySide.style.width = '100%';
+                enemySide.style.height = '100%';
+                enemySide.style.pointerEvents = 'none';
+                enemySide.style.zIndex = '1000';
+                // Add to game scene instead of document body
+                const gameScene = document.querySelector('.game-scene');
+                if (gameScene) {
+                    gameScene.appendChild(enemySide);
+                    console.log('Added enemy-side to game scene');
+                } else {
+                    console.error('Game scene not found!');
+                    return;
+                }
+            }
+            // Player run-in animation (copied from level 7 logic)
+            setTimeout(() => {
+                const playerElement = document.querySelector('.player-character');
+                if (playerElement) {
+                    playerElement.style.visibility = 'hidden';
+                    playerElement.style.opacity = '0';
+                    playerElement.style.transform = 'translateX(-600px)';
+                    playerElement.style.transition = 'none';
+                    this.playerCharacter.playRunAnimation();
+                    const runningSound = this.soundManager.sounds.get('running');
+                    if (runningSound) {
+                        runningSound.currentTime = 1;
+                        runningSound.play().catch(() => {});
+                    }
+                    requestAnimationFrame(() => {
+                        playerElement.style.visibility = 'visible';
+                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
+                        playerElement.style.opacity = '1';
+                        playerElement.style.transform = 'translateX(0)';
+                    });
+                    setTimeout(() => {
+                        this.playerCharacter.stopRunAnimation();
+                        if (runningSound) {
+                            runningSound.pause();
+                            runningSound.currentTime = 0;
+                        }
+                    }, 2000);
+                }
+            }, 4000);
+        } else if (this.currentLevel === 9) {
+            // Level 9: Town hub, no enemies, just player intro
+            console.log('Level 9 (Town) initialized - no enemies');
+            // Create player element first but keep it hidden
+            const playerSide = document.querySelector('.player-side');
+            if (playerSide) {
+                playerSide.innerHTML = '';
+                // Create player element with the already initialized playerCharacter
+                const playerElement = this.playerCharacter.createPlayerElement();
+                playerElement.setAttribute('data-class', this.playerClass);
+                playerElement.style.opacity = '0';  // Start hidden
+                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
+                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
+                playerElement.style.transition = 'none';  // No transition initially
+                // Add shield aura
+                const shieldAura = document.createElement('div');
+                shieldAura.className = 'shield-aura';
+                playerElement.appendChild(shieldAura);
+                // Create stats container
+                const statsContainer = document.createElement('div');
+                statsContainer.className = 'character-stats';
+                statsContainer.style.position = 'absolute';
+                statsContainer.style.left = '0';
+                statsContainer.style.bottom = '0';
+                statsContainer.innerHTML = `
+                    <div class="health-bar">
+                        <div class="health-bar-fill" style="width: 100%"></div>
+                    </div>
+                    <div class="defense-bar">
+                        <div class="defense-bar-fill" style="width: 0%"></div>
+                        <div class="defense-text">Defense: 0</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
+                    </div>
+                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
+                `;
+                // Add elements to player side
+                playerSide.appendChild(playerElement);
+                playerSide.appendChild(statsContainer);
+            }
+            // Create enemy-side element if it doesn't exist
+            let enemySide = document.querySelector('.enemy-side');
+            if (!enemySide) {
+                enemySide = document.createElement('div');
+                enemySide.className = 'enemy-side';
+                enemySide.style.position = 'absolute';
+                enemySide.style.left = '0';
+                enemySide.style.top = '0';
+                enemySide.style.width = '100%';
+                enemySide.style.height = '100%';
+                enemySide.style.pointerEvents = 'none';
+                enemySide.style.zIndex = '1000';
+                // Add to game scene instead of document body
+                const gameScene = document.querySelector('.game-scene');
+                if (gameScene) {
+                    gameScene.appendChild(enemySide);
+                    console.log('Added enemy-side to game scene');
+                } else {
+                    console.error('Game scene not found!');
+                    return;
+                }
+            }
+            // Player run-in animation
+            setTimeout(() => {
+                const playerElement = document.querySelector('.player-character');
+                if (playerElement) {
+                    playerElement.style.visibility = 'hidden';
+                    playerElement.style.opacity = '0';
+                    playerElement.style.transform = 'translateX(-600px)';
+                    playerElement.style.transition = 'none';
+                    this.playerCharacter.playRunAnimation();
+                    const runningSound = this.soundManager.sounds.get('running');
+                    if (runningSound) {
+                        runningSound.currentTime = 1;
+                        runningSound.play().catch(() => {});
+                    }
+                    requestAnimationFrame(() => {
+                        playerElement.style.visibility = 'visible';
+                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
+                        playerElement.style.opacity = '1';
+                        playerElement.style.transform = 'translateX(0)';
+                    });
+                    setTimeout(() => {
+                        this.playerCharacter.stopRunAnimation();
+                        if (runningSound) {
+                            runningSound.pause();
+                            runningSound.currentTime = 0;
+                        }
+                    }, 2000);
+                }
+            }, 400);
+            this.createInteractableRectangle();
+        } else if (this.currentLevel === 10) {
+            // Level 10: Inn, no enemies
+            console.log('Level 10 (Inn) initialized - no enemies');
+            // Create player element first but keep it hidden
+            const playerSide = document.querySelector('.player-side');
+            if (playerSide) {
+                playerSide.innerHTML = '';
+                // Create player element with the already initialized playerCharacter
+                const playerElement = this.playerCharacter.createPlayerElement();
+                playerElement.setAttribute('data-class', this.playerClass);
+                playerElement.style.opacity = '0';  // Start hidden
+                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
+                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
+                playerElement.style.transition = 'none';  // No transition initially
+                // Add shield aura
+                const shieldAura = document.createElement('div');
+                shieldAura.className = 'shield-aura';
+                playerElement.appendChild(shieldAura);
+                // Create stats container
+                const statsContainer = document.createElement('div');
+                statsContainer.className = 'character-stats';
+                statsContainer.style.position = 'absolute';
+                statsContainer.style.left = '0';
+                statsContainer.style.bottom = '0';
+                statsContainer.innerHTML = `
+                    <div class="health-bar">
+                        <div class="health-bar-fill" style="width: 100%"></div>
+                    </div>
+                    <div class="defense-bar">
+                        <div class="defense-bar-fill" style="width: 0%"></div>
+                        <div class="defense-text">Defense: 0</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
+                    </div>
+                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
+                `;
+                // Add elements to player side
+                playerSide.appendChild(playerElement);
+                playerSide.appendChild(statsContainer);
+            }
+            // Create enemy-side element if it doesn't exist
+            let enemySide = document.querySelector('.enemy-side');
+            if (!enemySide) {
+                enemySide = document.createElement('div');
+                enemySide.className = 'enemy-side';
+                enemySide.style.position = 'absolute';
+                enemySide.style.left = '0';
+                enemySide.style.top = '0';
+                enemySide.style.width = '100%';
+                enemySide.style.height = '100%';
+                enemySide.style.pointerEvents = 'none';
+                enemySide.style.zIndex = '1000';
+                // Add to game scene instead of document body
+                const gameScene = document.querySelector('.game-scene');
+                if (gameScene) {
+                    gameScene.appendChild(enemySide);
+                    console.log('Added enemy-side to game scene');
+                } else {
+                    console.error('Game scene not found!');
+                    return;
+                }
+            }
+            // Player run-in animation
+            setTimeout(() => {
+                const playerElement = document.querySelector('.player-character');
+                if (playerElement) {
+                    playerElement.style.visibility = 'hidden';
+                    playerElement.style.opacity = '0';
+                    playerElement.style.transform = 'translateX(-600px)';
+                    playerElement.style.transition = 'none';
+                    this.playerCharacter.playRunAnimation();
+                    const runningSound = this.soundManager.sounds.get('running');
+                    if (runningSound) {
+                        runningSound.currentTime = 1;
+                        runningSound.play().catch(() => {});
+                    }
+                    requestAnimationFrame(() => {
+                        playerElement.style.visibility = 'visible';
+                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
+                        playerElement.style.opacity = '1';
+                        playerElement.style.transform = 'translateX(0)';
+                    });
+                    setTimeout(() => {
+                        this.playerCharacter.stopRunAnimation();
+                        if (runningSound) {
+                            runningSound.pause();
+                            runningSound.currentTime = 0;
+                        }
+                    }, 2000);
+                }
+            }, 400);
+            this.createInteractableRectangle();
+            // Remove any existing inn/town door boxes
+            document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
+            // Remove any previous interactable rectangles (from level 9 or elsewhere)
+            document.querySelectorAll('.interactable-rect').forEach(el => el.remove());
+            // Create Inn door box
+            const innBox = document.createElement('div');
+            innBox.className = 'inn-door-box interactable-rect';
+            innBox.style.position = 'absolute';
+            innBox.style.left = '28.5%';
+            innBox.style.top = '70%';
+            innBox.style.width = '60px';
+            innBox.style.height = '150px';
+            innBox.style.background = 'rgba(80, 200, 255, 0.25)';
+            innBox.style.border = '2px solid #39ff14';
+            innBox.style.borderRadius = '12px';
+            innBox.style.cursor = 'pointer';
+            innBox.style.zIndex = '3000';
+            innBox.title = 'Inn';
+            innBox.style.display = 'flex';
+            innBox.style.alignItems = 'center';
+            innBox.style.justifyContent = 'center';
+            innBox.style.fontSize = '2em';
+            innBox.style.color = '#fff';
+            innBox.style.fontWeight = 'bold';
+            innBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+            innBox.textContent = 'Inn';
+            innBox.addEventListener('mouseenter', () => {
+                innBox.style.background = 'rgba(80, 255, 180, 0.35)';
+                innBox.style.borderColor = '#fff';
+                innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+            });
+            innBox.addEventListener('mouseleave', () => {
+                innBox.style.background = 'rgba(80, 200, 255, 0.25)';
+                innBox.style.borderColor = '#39ff14';
+                innBox.style.cursor = 'pointer';
+            });
+            innBox.addEventListener('click', () => {
+                // Optionally show a message or do nothing
+                alert('You are already in the Inn!');
+            });
+            // Create Back to Town door box
+            const backBox = document.createElement('div');
+            backBox.className = 'inn-door-box interactable-rect';
+            backBox.style.position = 'absolute';
+            backBox.style.left = '60%';
+            backBox.style.top = '60%';
+            backBox.style.width = '300px';
+            backBox.style.height = '180px';
+            backBox.style.background = 'rgba(80, 200, 255, 0.25)';
+            backBox.style.border = '2px solid #39ff14';
+            backBox.style.borderRadius = '12px';
+            backBox.style.cursor = 'pointer';
+            backBox.style.zIndex = '3000';
+            backBox.title = 'Back to Town';
+            backBox.style.display = 'flex';
+            backBox.style.alignItems = 'center';
+            backBox.style.justifyContent = 'center';
+            backBox.style.fontSize = '2em';
+            backBox.style.color = '#fff';
+            backBox.style.fontWeight = 'bold';
+            backBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+            backBox.textContent = 'Back to Town';
+            backBox.addEventListener('mouseenter', () => {
+                backBox.style.background = 'rgba(80, 255, 180, 0.35)';
+                backBox.style.borderColor = '#fff';
+                backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+            });
+            backBox.addEventListener('mouseleave', () => {
+                backBox.style.background = 'rgba(80, 200, 255, 0.25)';
+                backBox.style.borderColor = '#39ff14';
+                backBox.style.cursor = 'pointer';
+            });
+            backBox.addEventListener('click', () => {
+                this.previousLevel = 10;
+                this.currentLevel = 9;
+                this.startNextLevel();
+            });
+            // Add to playfield
+            const playfield = document.querySelector('.playfield');
+            if (playfield) {
+                playfield.appendChild(innBox);
+                playfield.appendChild(backBox);
+            } else {
+                document.body.appendChild(innBox);
+                document.body.appendChild(backBox);
+            }
+            // Set initial visibility like other doors
+            const visible = this.interactableRectsVisible;
+            innBox.style.opacity = visible ? '1' : '0';
+            innBox.style.pointerEvents = 'auto';
+            innBox.style.transition = 'opacity 0.3s';
+            backBox.style.opacity = visible ? '1' : '0';
+            backBox.style.pointerEvents = 'auto';
+            backBox.style.transition = 'opacity 0.3s';
         } else {
             // For other levels, spawn enemies based on level number
             // (No longer used for levels 1-3)
@@ -1204,21 +1569,155 @@ export class Game {
         if (playfield) {
             if (this.currentLevel === 1) {
                 playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 2) {
                 playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 3) {
                 playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 4) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 5) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 6) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 7) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
+            } else if (this.currentLevel === 8) {
+                playfield.style.backgroundImage = "url('./assets/Images/ftown.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
+            } else if (this.currentLevel === 9) {
+                playfield.style.backgroundImage = "url('./assets/Images/level9.png')";
+                playfield.style.backgroundSize = 'cover';
+                playfield.style.backgroundPosition = '';
+                playfield.style.backgroundRepeat = '';
+            } else if (this.currentLevel === 10) {
+                playfield.style.backgroundImage = "url('./assets/Images/innnight.png')";
+                playfield.style.backgroundSize = 'cover';
+                playfield.style.backgroundPosition = 'center';
+                playfield.style.backgroundRepeat = 'no-repeat';
             } else {
                 playfield.style.backgroundImage = "";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
+                playfield.style.backgroundRepeat = '';
             }
+        }
+
+        // If level 10 (inn), ensure no enemies
+        if (this.currentLevel === 10) {
+            this.enemies = [];
+            const enemySide = document.querySelector('.enemy-side');
+            if (enemySide) {
+                while (enemySide.firstChild) {
+                    enemySide.removeChild(enemySide.firstChild);
+                }
+            }
+            // Remove any existing inn/town door boxes
+            document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
+            // Create Inn door box
+            const innBox = document.createElement('div');
+            innBox.className = 'inn-door-box interactable-rect';
+            innBox.style.position = 'absolute';
+            innBox.style.left = '28.5%';
+            innBox.style.top = '70%';
+            innBox.style.width = '60px';
+            innBox.style.height = '150px';
+            innBox.style.background = 'rgba(80, 200, 255, 0.25)';
+            innBox.style.border = '2px solid #39ff14';
+            innBox.style.borderRadius = '12px';
+            innBox.style.cursor = 'pointer';
+            innBox.style.zIndex = '3000';
+            innBox.title = 'Inn';
+            innBox.style.display = 'flex';
+            innBox.style.alignItems = 'center';
+            innBox.style.justifyContent = 'center';
+            innBox.style.fontSize = '2em';
+            innBox.style.color = '#fff';
+            innBox.style.fontWeight = 'bold';
+            innBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+            innBox.textContent = 'Inn';
+            innBox.addEventListener('mouseenter', () => {
+                innBox.style.background = 'rgba(80, 255, 180, 0.35)';
+                innBox.style.borderColor = '#fff';
+                innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+            });
+            innBox.addEventListener('mouseleave', () => {
+                innBox.style.background = 'rgba(80, 200, 255, 0.25)';
+                innBox.style.borderColor = '#39ff14';
+                innBox.style.cursor = 'pointer';
+            });
+            innBox.addEventListener('click', () => {
+                // Optionally show a message or do nothing
+                alert('You are already in the Inn!');
+            });
+            // Create Back to Town door box
+            const backBox = document.createElement('div');
+            backBox.className = 'inn-door-box interactable-rect';
+            backBox.style.position = 'absolute';
+            backBox.style.left = '60%';
+            backBox.style.top = '60%';
+            backBox.style.width = '300px';
+            backBox.style.height = '180px';
+            backBox.style.background = 'rgba(80, 200, 255, 0.25)';
+            backBox.style.border = '2px solid #39ff14';
+            backBox.style.borderRadius = '12px';
+            backBox.style.cursor = 'pointer';
+            backBox.style.zIndex = '3000';
+            backBox.title = 'Back to Town';
+            backBox.style.display = 'flex';
+            backBox.style.alignItems = 'center';
+            backBox.style.justifyContent = 'center';
+            backBox.style.fontSize = '2em';
+            backBox.style.color = '#fff';
+            backBox.style.fontWeight = 'bold';
+            backBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+            backBox.textContent = 'Back to Town';
+            backBox.addEventListener('mouseenter', () => {
+                backBox.style.background = 'rgba(80, 255, 180, 0.35)';
+                backBox.style.borderColor = '#fff';
+                backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+            });
+            backBox.addEventListener('mouseleave', () => {
+                backBox.style.background = 'rgba(80, 200, 255, 0.25)';
+                backBox.style.borderColor = '#39ff14';
+                backBox.style.cursor = 'pointer';
+            });
+            backBox.addEventListener('click', () => {
+                this.previousLevel = 10;
+                this.currentLevel = 9;
+                this.startNextLevel();
+            });
+            // Add to playfield
+            const playfield = document.querySelector('.playfield');
+            if (playfield) {
+                playfield.appendChild(innBox);
+                playfield.appendChild(backBox);
+            } else {
+                document.body.appendChild(innBox);
+                document.body.appendChild(backBox);
+            }
+            // Set initial visibility like other doors
+            const visible = this.interactableRectsVisible;
+            innBox.style.opacity = visible ? '1' : '0';
+            innBox.style.pointerEvents = 'auto';
+            innBox.style.transition = 'opacity 0.3s';
+            backBox.style.opacity = visible ? '1' : '0';
+            backBox.style.pointerEvents = 'auto';
+            backBox.style.transition = 'opacity 0.3s';
         }
 
         // Add continue button for level 4
@@ -1227,6 +1726,9 @@ export class Game {
         } else {
             this.removeContinueButton();
         }
+
+        // Add backpack icon next to discard pile
+        this.backpack.initialize();
     }
 
     createTargetingArrow() {
@@ -1821,7 +2323,12 @@ export class Game {
         let endY = spriteRect.top + spriteRect.height / 2;
 
         // Apply enemy-specific hitbox offsets
-        if (targetElement.dataset.enemyId) {
+        if (targetElement.classList.contains('werewolf')) {
+            // Werewolf hitbox: calculate center of the smaller green hitbox
+            // The hitbox is positioned at the bottom center of the sprite
+            endX = spriteRect.left + spriteRect.width / 2;  // Center horizontally
+            endY = spriteRect.top + spriteRect.height * 0.7;  // Position at 70% down the sprite height
+        } else if (targetElement.dataset.enemyId) {
             if (targetElement.dataset.enemyId === "1" || targetElement.dataset.enemyId === "2") {
                 // Executioner hitbox offset
                 endX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
@@ -1830,10 +2337,6 @@ export class Game {
                 // Skeleton hitbox offset (IDs 3 and 4)
                 // No X offset, but move 40px down for hitbox center
                 endY += 40;
-            } else {
-                // Werewolf hitbox offset
-                endX += 50; // Move 50px to the right (because of sprite flip)
-                endY += 80; // Move 80px down
             }
         }
 
@@ -1863,18 +2366,20 @@ export class Game {
                 break;
             }
 
-            // For single-target spells, check if the target is still alive
+            // For single-target spells, check if the target is still alive and valid
             if (attack.cardId !== 'heat_wave' && attack.cardId !== 'pyroclasm' && 
                 attack.cardId !== 'meteor_strike' && attack.cardId !== 'inferno') {
-                const targetEnemy = this.enemies.find(e => e.id === attack.targetEnemy.id);
+                let targetEnemy = this.enemies.find(e => e.id === attack.targetEnemy.id && !e.hasRunAway && e.element);
                 if (!targetEnemy) {
-                    // Target is dead, find a new target
-                    const newTarget = this.enemies[0]; // Use the first remaining enemy
+                    // Target is dead or invalid, find a new valid target
+                    const newTarget = this.enemies.find(e => !e.hasRunAway && e.element);
                     if (!newTarget) {
-                        // No enemies left, end the attack phase
+                        // No valid enemies left, end the attack phase
                         break;
                     }
                     attack.targetEnemy = newTarget;
+                } else {
+                    attack.targetEnemy = targetEnemy;
                 }
             }
 
@@ -2001,7 +2506,12 @@ export class Game {
                         let endY = spriteRect.top + spriteRect.height / 2;
 
                         // Apply enemy-specific hitbox offsets
-                        if (enemyElement.dataset.enemyId) {
+                        if (enemyElement.classList.contains('werewolf')) {
+                            // Werewolf hitbox: calculate center of the smaller green hitbox
+                            // The hitbox is positioned at the bottom center of the sprite
+                            endX = spriteRect.left + spriteRect.width / 2;  // Center horizontally
+                            endY = spriteRect.top + spriteRect.height * 0.75;  // Position at 75% down the sprite height (much lower)
+                        } else if (enemyElement.dataset.enemyId) {
                             if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
                                 // Executioner hitbox offset
                                 endX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
@@ -2010,10 +2520,6 @@ export class Game {
                                 // Skeleton hitbox offset (IDs 3 and 4)
                                 // No X offset, but move 40px down for hitbox center
                                 endY += 40;
-                            } else {
-                                // Werewolf hitbox offset
-                                endX += 50; // Move 50px to the right (because of sprite flip)
-                                endY += 80; // Move 80px down
                             }
                         }
                         
@@ -2048,7 +2554,12 @@ export class Game {
                     let targetY = spriteRect.top + spriteRect.height / 2;
 
                     // Apply enemy-specific hitbox offsets
-                    if (enemyElement.dataset.enemyId) {
+                    if (enemyElement.classList.contains('werewolf')) {
+                        // Werewolf hitbox: calculate center of the smaller green hitbox
+                        // The hitbox is positioned at the bottom center of the sprite
+                        targetX = spriteRect.left + spriteRect.width / 2;  // Center horizontally
+                        targetY = spriteRect.top + spriteRect.height * 0.6;  // Position at 60% down the sprite height
+                    } else if (enemyElement.dataset.enemyId) {
                         if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
                             // Executioner hitbox offset
                             targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
@@ -2057,10 +2568,6 @@ export class Game {
                             // Skeleton hitbox offset (IDs 3 and 4)
                             // No X offset, but move 40px down for hitbox center
                             targetY += 40;
-                        } else {
-                            // Werewolf hitbox offset
-                            targetX += 40; // Move 40px to the right (because of sprite flip)
-                            targetY += 80; // Move 80px down
                         }
                     }
                     
@@ -2122,17 +2629,21 @@ export class Game {
                         let targetY = spriteRect.top + spriteRect.height / 2;
                         
                         // Apply enemy-specific hitbox offsets
-                        if (enemy.constructor.name === "Skeleton") {
-                            // Skeleton hitbox offset - fixed position for all skeletons
-                            targetY -= 20; // Move 20px up to align with bottom of playfield
-                        } else if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
-                            // Executioner hitbox offset
-                            targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
-                            targetY += 20; // Move 20px up to match the hitbox position
-                        } else {
-                            // Werewolf hitbox offset
-                            targetX += 50; // Move 50px to the right (because of sprite flip)
-                            targetY += 80; // Move 80px down
+                        if (enemyElement.classList.contains('werewolf')) {
+                            // Werewolf hitbox: calculate center of the smaller green hitbox
+                            // The hitbox is positioned at the bottom center of the sprite
+                            targetX = spriteRect.left + spriteRect.width / 2;  // Center horizontally
+                            targetY = spriteRect.top + spriteRect.height * 0.55;  // Position at 55% down the sprite height (between previous positions)
+                        } else if (enemyElement.dataset.enemyId) {
+                            if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
+                                // Executioner hitbox offset
+                                targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
+                                targetY += 20; // Move 20px up to match the hitbox position
+                            } else if (enemyElement.classList.contains('enemy-character') && (enemyElement.dataset.enemyId === "3" || enemyElement.dataset.enemyId === "4")) {
+                                // Skeleton hitbox offset (IDs 3 and 4)
+                                // No X offset, but move 40px down for hitbox center
+                                targetY += 40;
+                            }
                         }
                         
                         console.log('Heat wave target position:', targetX, targetY);
@@ -2153,18 +2664,20 @@ export class Game {
                     let targetY = spriteRect.top + spriteRect.height / 2;
                     
                     // Apply enemy-specific hitbox offsets
-                    if (enemyElement.dataset.enemyId) {
+                    if (enemyElement.classList.contains('werewolf')) {
+                        // Werewolf hitbox: calculate center of the smaller green hitbox
+                        // The hitbox is positioned at the bottom center of the sprite
+                        targetX = spriteRect.left + spriteRect.width / 2;  // Center horizontally
+                        targetY = spriteRect.top + spriteRect.height * 0.65;  // Position at 65% down the sprite height
+                    } else if (enemyElement.dataset.enemyId) {
                         if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
                             // Executioner hitbox offset
                             targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
                             targetY += 20; // Move 20px up to match the hitbox position
-                        } else if (enemyElement.constructor && enemy.constructor.name === "Skeleton") {
-                            // Skeleton hitbox offset (all skeletons)
+                        } else if (enemyElement.classList.contains('enemy-character') && (enemyElement.dataset.enemyId === "3" || enemyElement.dataset.enemyId === "4")) {
+                            // Skeleton hitbox offset (IDs 3 and 4)
+                            // No X offset, but move 40px down for hitbox center
                             targetY += 40;
-                        } else {
-                            // Werewolf hitbox offset
-                            targetX += 50; // Move 50px to the right (because of sprite flip)
-                            targetY += 80; // Move 80px down
                         }
                     }
                     
@@ -2278,7 +2791,7 @@ export class Game {
 
         // Update resources for the turn
         if (this.playerClass === 'mage') {
-            this.playerResource = 11;
+            this.playerResource = 10;
         } else {
             // Warrior gets 4 rage each turn, added to existing rage
             this.playerResource += 4;
@@ -2444,6 +2957,21 @@ export class Game {
             debugMenu.appendChild(button);
         });
 
+        // Add Toggle Doors button to main debug menu
+        const toggleRectsBtn = document.createElement('button');
+        toggleRectsBtn.textContent = 'Toggle Doors';
+        toggleRectsBtn.style.display = 'block';
+        toggleRectsBtn.style.width = '100%';
+        toggleRectsBtn.style.margin = '5px 0';
+        toggleRectsBtn.style.padding = '5px';
+        toggleRectsBtn.style.backgroundColor = '#4CAF50';
+        toggleRectsBtn.style.color = 'white';
+        toggleRectsBtn.style.border = 'none';
+        toggleRectsBtn.style.borderRadius = '3px';
+        toggleRectsBtn.style.cursor = 'pointer';
+        toggleRectsBtn.onclick = () => this.toggleInteractableRects();
+        debugMenu.appendChild(toggleRectsBtn);
+
         // Add level selector
         const levelSelectorContainer = document.createElement('div');
         levelSelectorContainer.style.marginTop = '10px';
@@ -2467,7 +2995,7 @@ export class Game {
         levelSelector.style.cursor = 'pointer';
 
         // Add options for each level, including level 6
-        for (let i = 1; i <= 7; i++) {
+        for (let i = 1; i <= this.maxLevel; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -2730,6 +3258,8 @@ export class Game {
     }
 
     startNextLevel() {
+        // Track previous level before changing
+        // this.previousLevel = this.currentLevel; // REMOVE THIS LINE
         // Update level indicator
         const levelIndicator = document.querySelector('div[style*="position: fixed"][style*="top: 20px"][style*="left: 20px"]');
         if (levelIndicator) {
@@ -2751,7 +3281,7 @@ export class Game {
         this.initializeGame();
 
         // Run-in animation for mage/warrior after player element is created
-        if (this.playerClass === 'mage' || this.playerClass === 'warrior') {
+        if ((this.playerClass === 'mage' || this.playerClass === 'warrior') && this.currentLevel !== 7) {
             setTimeout(() => {
                 const playerElement = document.querySelector('.player-character');
                 if (playerElement) {
@@ -2790,21 +3320,154 @@ export class Game {
         if (playfield) {
             if (this.currentLevel === 1) {
                 playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 2) {
                 playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 3) {
                 playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 4) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 5) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 6) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
             } else if (this.currentLevel === 7) {
                 playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
+            } else if (this.currentLevel === 8) {
+                playfield.style.backgroundImage = "url('./assets/Images/ftown.png')";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
+            } else if (this.currentLevel === 9) {
+                playfield.style.backgroundImage = "url('./assets/Images/level9.png')";
+                playfield.style.backgroundSize = 'cover';
+                playfield.style.backgroundPosition = '';
+                playfield.style.backgroundRepeat = '';
+            } else if (this.currentLevel === 10) {
+                playfield.style.backgroundImage = "url('./assets/Images/innnight.png')";
+                playfield.style.backgroundSize = 'cover';
+                playfield.style.backgroundPosition = 'center';
+                playfield.style.backgroundRepeat = 'no-repeat';
             } else {
                 playfield.style.backgroundImage = "";
+                playfield.style.backgroundSize = '';
+                playfield.style.backgroundPosition = '';
+                playfield.style.backgroundRepeat = '';
             }
+        }
+
+        // If level 10 (inn), ensure no enemies
+        if (this.currentLevel === 10) {
+            this.enemies = [];
+            const enemySide = document.querySelector('.enemy-side');
+            if (enemySide) {
+                while (enemySide.firstChild) {
+                    enemySide.removeChild(enemySide.firstChild);
+                }
+            }
+            // Remove any existing inn/town door boxes
+            document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
+            // Create Inn door box
+            const innBox = document.createElement('div');
+            innBox.className = 'inn-door-box interactable-rect';
+            innBox.style.position = 'absolute';
+            innBox.style.left = '28.5%';
+            innBox.style.top = '70%';
+            innBox.style.width = '60px';
+            innBox.style.height = '150px';
+            innBox.style.background = 'rgba(80, 200, 255, 0.25)';
+            innBox.style.border = '2px solid #39ff14';
+            innBox.style.borderRadius = '12px';
+            innBox.style.cursor = 'pointer';
+            innBox.style.zIndex = '3000';
+            innBox.title = 'Inn';
+            innBox.style.display = 'flex';
+            innBox.style.alignItems = 'center';
+            innBox.style.justifyContent = 'center';
+            innBox.style.fontSize = '2em';
+            innBox.style.color = '#fff';
+            innBox.style.fontWeight = 'bold';
+            innBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+            innBox.textContent = 'Inn';
+            innBox.addEventListener('mouseenter', () => {
+                innBox.style.background = 'rgba(80, 255, 180, 0.35)';
+                innBox.style.borderColor = '#fff';
+                innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+            });
+            innBox.addEventListener('mouseleave', () => {
+                innBox.style.background = 'rgba(80, 200, 255, 0.25)';
+                innBox.style.borderColor = '#39ff14';
+                innBox.style.cursor = 'pointer';
+            });
+            innBox.addEventListener('click', () => {
+                // Optionally show a message or do nothing
+                alert('You are already in the Inn!');
+            });
+            // Create Back to Town door box
+            const backBox = document.createElement('div');
+            backBox.className = 'inn-door-box interactable-rect';
+            backBox.style.position = 'absolute';
+            backBox.style.left = '60%';
+            backBox.style.top = '60%';
+            backBox.style.width = '300px';
+            backBox.style.height = '180px';
+            backBox.style.background = 'rgba(80, 200, 255, 0.25)';
+            backBox.style.border = '2px solid #39ff14';
+            backBox.style.borderRadius = '12px';
+            backBox.style.cursor = 'pointer';
+            backBox.style.zIndex = '3000';
+            backBox.title = 'Back to Town';
+            backBox.style.display = 'flex';
+            backBox.style.alignItems = 'center';
+            backBox.style.justifyContent = 'center';
+            backBox.style.fontSize = '2em';
+            backBox.style.color = '#fff';
+            backBox.style.fontWeight = 'bold';
+            backBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+            backBox.textContent = 'Back to Town';
+            backBox.addEventListener('mouseenter', () => {
+                backBox.style.background = 'rgba(80, 255, 180, 0.35)';
+                backBox.style.borderColor = '#fff';
+                backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+            });
+            backBox.addEventListener('mouseleave', () => {
+                backBox.style.background = 'rgba(80, 200, 255, 0.25)';
+                backBox.style.borderColor = '#39ff14';
+            });
+            backBox.addEventListener('click', () => {
+                this.previousLevel = 10;
+                this.currentLevel = 9;
+                this.startNextLevel();
+            });
+            // Add to playfield
+            const playfield = document.querySelector('.playfield');
+            if (playfield) {
+                playfield.appendChild(innBox);
+                playfield.appendChild(backBox);
+            } else {
+                document.body.appendChild(innBox);
+                document.body.appendChild(backBox);
+            }
+            // Set initial visibility like other doors
+            const visible = this.interactableRectsVisible;
+            innBox.style.opacity = visible ? '1' : '0';
+            innBox.style.pointerEvents = 'auto';
+            innBox.style.transition = 'opacity 0.3s';
+            backBox.style.opacity = visible ? '1' : '0';
+            backBox.style.pointerEvents = 'auto';
+            backBox.style.transition = 'opacity 0.3s';
         }
 
         // Reset player's turn after all enemies are spawned
@@ -2878,6 +3541,55 @@ export class Game {
             } else {
                 // Fallback: show after 10 seconds if audio not found
                 setTimeout(showContinue, 10000);
+            }
+        }
+        // Play forestexit.mp3 when reaching level 8
+        if (this.currentLevel === 8) {
+            const audio = this.soundManager.sounds.get('forestexit');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
+                audio.onended = () => {
+                    this.showEnterTownButton();
+                };
+            } else {
+                // If audio not found, fallback to show button after 3 seconds
+                setTimeout(() => this.showEnterTownButton(), 3000);
+            }
+        }
+        // Play nighttown.mp3 as background music and townnar.mp3 narration when reaching level 9
+        if (this.currentLevel === 9) {
+            // Stop previous level music
+            if (this.levelMusic) {
+                this.levelMusic.pause();
+                this.levelMusic.currentTime = 0;
+            }
+            // Start nighttown.mp3 as new background music
+            this.levelMusic = new Audio('./assets/Audio/nighttown.mp3');
+            this.levelMusic.loop = true;
+            this.levelMusic.volume = this.musicVolume || 0.5;
+            this.levelMusic.play().catch(error => {
+                console.log('Autoplay prevented:', error);
+                const startMusic = () => {
+                    this.levelMusic.play();
+                    document.removeEventListener('click', startMusic);
+                };
+                document.addEventListener('click', startMusic);
+            });
+            // Debug log for narration
+            console.log('[LEVEL 9] previousLevel:', this.previousLevel, 'currentLevel:', this.currentLevel);
+            // Play townnar.mp3 narration (once, not looping) ONLY if not coming from level 10
+            if (this.previousLevel !== 10) {
+                const narration = new Audio('./assets/Audio/townnar.mp3');
+                narration.volume = this.musicVolume || 0.5;
+                narration.play().catch(error => {
+                    console.log('Autoplay prevented:', error);
+                    const startNarration = () => {
+                        narration.play();
+                        document.removeEventListener('click', startNarration);
+                    };
+                    document.addEventListener('click', startNarration);
+                });
             }
         }
     }
@@ -3247,6 +3959,280 @@ export class Game {
             }
         }, 1000); // Wait 1 second before player starts following
     }
+
+    toggleInventoryGrid() {
+        this.backpack.toggleInventoryGrid();
+    }
+
+    showEnterTownButton() {
+        // Remove any existing button
+        const existingBtn = document.querySelector('.enter-town-btn');
+        if (existingBtn) existingBtn.remove();
+        const btn = document.createElement('button');
+        btn.className = 'enter-town-btn';
+        btn.textContent = 'Enter Town';
+        btn.style.position = 'absolute';
+        btn.style.top = '50%';
+        btn.style.left = '50%';
+        btn.style.transform = 'translate(-50%, -50%)';
+        btn.style.zIndex = '2000';
+        btn.style.padding = '24px 64px';
+        btn.style.fontSize = '2em';
+        btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+        btn.style.color = '#b6ffb6';
+        btn.style.border = '2px solid #39ff14';
+        btn.style.borderRadius = '16px';
+        btn.style.cursor = 'pointer';
+        btn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+        btn.style.fontFamily = 'Cinzel, Times New Roman, serif';
+        btn.style.letterSpacing = '1px';
+        btn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        btn.addEventListener('mouseenter', () => {
+            btn.style.boxShadow = '0 0 48px 16px #39ff14cc, 0 4px 48px rgba(0,0,0,0.8)';
+            btn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
+            btn.style.color = '#eaffea';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+            btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+            btn.style.color = '#b6ffb6';
+        });
+        btn.addEventListener('click', () => this.handleEnterTown());
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            playfield.appendChild(btn);
+        } else {
+            document.body.appendChild(btn);
+        }
+    }
+
+    handleEnterTown() {
+        // Transition to level 9 (town hub)
+        const btn = document.querySelector('.enter-town-btn');
+        if (btn) btn.remove();
+        this.previousLevel = 8;
+        this.currentLevel = 9;
+        this.startNextLevel();
+    }
+
+    createInteractableRectangle() {
+        // Remove any existing interactable rectangles
+        document.querySelectorAll('.interactable-rect').forEach(el => el.remove());
+        // Door 1
+        const rect1 = document.createElement('div');
+        rect1.className = 'interactable-rect';
+        rect1.style.position = 'absolute';
+        rect1.style.left = '3%';
+        rect1.style.top = '64%';
+        rect1.style.width = '90px';
+        rect1.style.height = '180px';
+        rect1.style.background = 'rgba(80, 200, 255, 0.25)';
+        rect1.style.border = '2px solid #39ff14';
+        rect1.style.borderRadius = '12px';
+        rect1.style.cursor = 'pointer';
+        rect1.style.zIndex = '3000';
+        rect1.title = 'Interact (door)';
+        rect1.addEventListener('mouseenter', () => {
+            rect1.style.background = 'rgba(80, 255, 180, 0.35)';
+            rect1.style.borderColor = '#fff';
+            rect1.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+        });
+        rect1.addEventListener('mouseleave', () => {
+            rect1.style.background = 'rgba(80, 200, 255, 0.25)';
+            rect1.style.borderColor = '#39ff14';
+            rect1.style.cursor = 'pointer';
+        });
+        rect1.addEventListener('click', () => {
+            // Play closed1.mp3, closed2.mp3, or closed3.mp3 randomly, avoiding repeats
+            const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
+            if (this.soundManager && this.soundManager.playSound) {
+                this.soundManager.playSound(soundId);
+            }
+            this.lastClosedSound = soundId;
+            console.log('Interactable rectangle 1 clicked!');
+            // Future: open shop, quest, etc.
+        });
+        // Add a number label for door 1
+        const label1 = document.createElement('div');
+        label1.textContent = '1';
+        label1.style.position = 'absolute';
+        label1.style.top = '8px';
+        label1.style.left = '50%';
+        label1.style.transform = 'translateX(-50%)';
+        label1.style.fontSize = '2.5em';
+        label1.style.fontWeight = 'bold';
+        label1.style.color = '#fff';
+        label1.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        label1.style.pointerEvents = 'none';
+        rect1.appendChild(label1);
+        // Door 2
+        const rect2 = document.createElement('div');
+        rect2.className = 'interactable-rect';
+        rect2.style.position = 'absolute';
+        rect2.style.left = '68.7%';
+        rect2.style.top = '72%';
+        rect2.style.width = '90px';
+        rect2.style.height = '180px';
+        rect2.style.background = 'rgba(80, 200, 255, 0.25)';
+        rect2.style.border = '2px solid #39ff14';
+        rect2.style.borderRadius = '12px';
+        rect2.style.cursor = 'pointer';
+        rect2.style.zIndex = '3000';
+        rect2.title = 'Interact (door)';
+        rect2.addEventListener('mouseenter', () => {
+            rect2.style.background = 'rgba(80, 255, 180, 0.35)';
+            rect2.style.borderColor = '#fff';
+            rect2.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+        });
+        rect2.addEventListener('mouseleave', () => {
+            rect2.style.background = 'rgba(80, 200, 255, 0.25)';
+            rect2.style.borderColor = '#39ff14';
+            rect2.style.cursor = 'pointer';
+        });
+        rect2.addEventListener('click', () => {
+            // Play closed1.mp3, closed2.mp3, or closed3.mp3 randomly, avoiding repeats
+            const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
+            if (this.soundManager && this.soundManager.playSound) {
+                this.soundManager.playSound(soundId);
+            }
+            this.lastClosedSound = soundId;
+            console.log('Interactable rectangle 2 clicked!');
+            // Future: open shop, quest, etc.
+        });
+        // Add a number label for door 2
+        const label2 = document.createElement('div');
+        label2.textContent = '2';
+        label2.style.position = 'absolute';
+        label2.style.top = '8px';
+        label2.style.left = '50%';
+        label2.style.transform = 'translateX(-50%)';
+        label2.style.fontSize = '2.5em';
+        label2.style.fontWeight = 'bold';
+        label2.style.color = '#fff';
+        label2.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        label2.style.pointerEvents = 'none';
+        rect2.appendChild(label2);
+        // Door 3
+        const rect3 = document.createElement('div');
+        rect3.className = 'interactable-rect';
+        rect3.style.position = 'absolute';
+        rect3.style.left = '42.7%';
+        rect3.style.top = '67%';
+        rect3.style.width = '45px';
+        rect3.style.height = '90px';
+        rect3.style.background = 'rgba(80, 200, 255, 0.25)';
+        rect3.style.border = '2px solid #39ff14';
+        rect3.style.borderRadius = '12px';
+        rect3.style.cursor = 'pointer';
+        rect3.style.zIndex = '3000';
+        rect3.title = 'Interact (door)';
+        rect3.addEventListener('mouseenter', () => {
+            rect3.style.background = 'rgba(80, 255, 180, 0.35)';
+            rect3.style.borderColor = '#fff';
+            rect3.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+        });
+        rect3.addEventListener('mouseleave', () => {
+            rect3.style.background = 'rgba(80, 200, 255, 0.25)';
+            rect3.style.borderColor = '#39ff14';
+            rect3.style.cursor = 'pointer';
+        });
+        rect3.addEventListener('click', () => {
+            // Play closed1.mp3, closed2.mp3, or closed3.mp3 randomly, avoiding repeats
+            const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
+            if (this.soundManager && this.soundManager.playSound) {
+                this.soundManager.playSound(soundId);
+            }
+            this.lastClosedSound = soundId;
+            console.log('Interactable rectangle 3 clicked!');
+            // Future: open shop, quest, etc.
+        });
+        // Add a number label for door 3
+        const label3 = document.createElement('div');
+        label3.textContent = '3';
+        label3.style.position = 'absolute';
+        label3.style.top = '8px';
+        label3.style.left = '50%';
+        label3.style.transform = 'translateX(-50%)';
+        label3.style.fontSize = '2.5em';
+        label3.style.fontWeight = 'bold';
+        label3.style.color = '#fff';
+        label3.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        label3.style.pointerEvents = 'none';
+        rect3.appendChild(label3);
+        // Door 4 (square)
+        const rect4 = document.createElement('div');
+        rect4.className = 'interactable-rect';
+        rect4.style.position = 'absolute';
+        rect4.style.left = '52.5%';
+        rect4.style.top = '60%';
+        rect4.style.width = '150px';
+        rect4.style.height = '150px';
+        rect4.style.background = 'rgba(80, 200, 255, 0.25)';
+        rect4.style.border = '2px solid #39ff14';
+        rect4.style.borderRadius = '12px';
+        rect4.style.cursor = 'pointer';
+        rect4.style.zIndex = '3000';
+        rect4.title = 'Interact (door)';
+        rect4.addEventListener('mouseenter', () => {
+            rect4.style.background = 'rgba(80, 255, 180, 0.35)';
+            rect4.style.borderColor = '#fff';
+            // Use mageboots48.png as the cursor
+            rect4.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+        });
+        rect4.addEventListener('mouseleave', () => {
+            rect4.style.background = 'rgba(80, 200, 255, 0.25)';
+            rect4.style.borderColor = '#39ff14';
+            rect4.style.cursor = 'pointer';
+        });
+        rect4.addEventListener('click', () => {
+            console.log('Interactable rectangle 4 clicked!');
+            // Transition to the inn (level 10)
+            this.currentLevel = 10;
+            this.startNextLevel();
+        });
+        // Add a number label for door 4
+        const label4 = document.createElement('div');
+        label4.textContent = '4';
+        label4.style.position = 'absolute';
+        label4.style.top = '8px';
+        label4.style.left = '50%';
+        label4.style.transform = 'translateX(-50%)';
+        label4.style.fontSize = '2.5em';
+        label4.style.fontWeight = 'bold';
+        label4.style.color = '#fff';
+        label4.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        label4.style.pointerEvents = 'none';
+        rect4.appendChild(label4);
+        // Add all rectangles to the playfield
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            playfield.appendChild(rect1);
+            playfield.appendChild(rect2);
+            playfield.appendChild(rect3);
+            playfield.appendChild(rect4);
+        } else {
+            document.body.appendChild(rect1);
+            document.body.appendChild(rect2);
+            document.body.appendChild(rect3);
+            document.body.appendChild(rect4);
+        }
+        // Set initial visibility
+        const visible = this.interactableRectsVisible;
+        [rect1, rect2, rect3, rect4].forEach(rect => {
+            rect.style.opacity = visible ? '1' : '0';
+            rect.style.pointerEvents = 'auto'; // Always interactable
+            rect.style.transition = 'opacity 0.3s';
+        });
+    }
+
+    toggleInteractableRects() {
+        this.interactableRectsVisible = !this.interactableRectsVisible;
+        // Toggle visibility but keep rectangles in DOM and interactive
+        document.querySelectorAll('.interactable-rect').forEach(rect => {
+            rect.style.opacity = this.interactableRectsVisible ? '1' : '0';
+            rect.style.pointerEvents = 'auto'; // Always interactable
+        });
+    }
 }
 
 // Start the game when the page loads
@@ -3337,7 +4323,16 @@ if (import.meta.hot) {
 
                 // 7. Reinitialize game with preserved state
                 newGame.initialize(newGame.playerClass, newGame.playerDeck);
+                // Re-add backpack icon for HMR
+                newGame.backpack.initialize();
             }
         }
     });
+}
+
+// Helper to pick a closed sound that is not the last played
+function pickNonRepeatingClosedSound(last) {
+    const sounds = ['closed1', 'closed2', 'closed3'];
+    const available = last ? sounds.filter(s => s !== last) : sounds;
+    return available[Math.floor(Math.random() * available.length)];
 }

@@ -216,6 +216,12 @@ export class DebugMenu {
     }
 
     createMenu() {
+        // Prevent multiple debug menus
+        const existing = document.querySelector('.debug-menu');
+        if (existing) {
+            this.menu = existing;
+            return;
+        }
         const menu = document.createElement('div');
         menu.className = 'debug-menu';
         menu.style.display = 'none';
@@ -256,6 +262,116 @@ export class DebugMenu {
         this.coordinatesDisplay.style.display = 'none';
         document.body.appendChild(this.coordinatesDisplay);
 
+        // Add always-visible controls at the top
+        const alwaysVisible = document.createElement('div');
+        alwaysVisible.style.display = 'flex';
+        alwaysVisible.style.flexDirection = 'column';
+        alwaysVisible.style.gap = '8px';
+        alwaysVisible.style.marginBottom = '16px';
+
+        // Reload Level button
+        const reloadLevelBtn = document.createElement('button');
+        reloadLevelBtn.innerHTML = '🔄 Reload Level';
+        reloadLevelBtn.className = 'debug-section';
+        reloadLevelBtn.style.width = '100%';
+        reloadLevelBtn.style.padding = '10px';
+        reloadLevelBtn.style.borderRadius = '5px';
+        reloadLevelBtn.style.background = '#333';
+        reloadLevelBtn.style.color = 'white';
+        reloadLevelBtn.style.cursor = 'pointer';
+        reloadLevelBtn.style.fontSize = '14px';
+        reloadLevelBtn.onclick = () => {
+            if (this.game && typeof this.game.startNextLevel === 'function') {
+                this.game.startNextLevel();
+            }
+        };
+        alwaysVisible.appendChild(reloadLevelBtn);
+
+        // Toggle Doors button
+        const toggleDoorsBtn = document.createElement('button');
+        toggleDoorsBtn.innerHTML = '🚪 Toggle Doors';
+        toggleDoorsBtn.className = 'debug-section';
+        toggleDoorsBtn.style.width = '100%';
+        toggleDoorsBtn.style.padding = '10px';
+        toggleDoorsBtn.style.borderRadius = '5px';
+        toggleDoorsBtn.style.background = '#333';
+        toggleDoorsBtn.style.color = 'white';
+        toggleDoorsBtn.style.cursor = 'pointer';
+        toggleDoorsBtn.style.fontSize = '14px';
+        toggleDoorsBtn.onclick = () => this.game.toggleInteractableRects();
+        alwaysVisible.appendChild(toggleDoorsBtn);
+
+        // Skip Level button
+        const skipLevelBtn = document.createElement('button');
+        skipLevelBtn.innerHTML = '⏭️ Skip Level';
+        skipLevelBtn.className = 'debug-section';
+        skipLevelBtn.style.width = '100%';
+        skipLevelBtn.style.padding = '10px';
+        skipLevelBtn.style.borderRadius = '5px';
+        skipLevelBtn.style.background = '#333';
+        skipLevelBtn.style.color = 'white';
+        skipLevelBtn.style.cursor = 'pointer';
+        skipLevelBtn.style.fontSize = '14px';
+        skipLevelBtn.onclick = () => this.handleDebugAction('skip-level');
+        alwaysVisible.appendChild(skipLevelBtn);
+
+        // Show Inventory Grid button
+        const showInvBtn = document.createElement('button');
+        showInvBtn.innerHTML = '🎒 Show Inventory Grid';
+        showInvBtn.className = 'debug-section';
+        showInvBtn.style.width = '100%';
+        showInvBtn.style.padding = '10px';
+        showInvBtn.style.borderRadius = '5px';
+        showInvBtn.style.background = '#333';
+        showInvBtn.style.color = 'white';
+        showInvBtn.style.cursor = 'pointer';
+        showInvBtn.style.fontSize = '14px';
+        showInvBtn.onclick = () => this.handleDebugAction('toggle-inventory-grid');
+        alwaysVisible.appendChild(showInvBtn);
+
+        // Toggle Hitboxes button
+        const hitboxBtn = document.createElement('button');
+        hitboxBtn.innerHTML = '🎯 Toggle Hitboxes';
+        hitboxBtn.className = 'debug-section';
+        hitboxBtn.style.width = '100%';
+        hitboxBtn.style.padding = '10px';
+        hitboxBtn.style.borderRadius = '5px';
+        hitboxBtn.style.background = '#333';
+        hitboxBtn.style.color = 'white';
+        hitboxBtn.style.cursor = 'pointer';
+        hitboxBtn.style.fontSize = '14px';
+        hitboxBtn.onclick = () => this.handleDebugAction('toggle-hitbox-view');
+        alwaysVisible.appendChild(hitboxBtn);
+
+        // Level selector
+        const levelSelectorDiv = document.createElement('div');
+        levelSelectorDiv.className = 'card-selector';
+        levelSelectorDiv.style.marginTop = '4px';
+        const levelLabel = document.createElement('div');
+        levelLabel.textContent = 'Select Level:';
+        levelLabel.style.color = '#fff';
+        levelLabel.style.marginBottom = '5px';
+        levelSelectorDiv.appendChild(levelLabel);
+        const levelSelect = document.createElement('select');
+        levelSelect.className = '';
+        for (let i = 1; i <= this.game.maxLevel; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Level ${i}`;
+            levelSelect.appendChild(option);
+        }
+        levelSelect.addEventListener('change', (e) => {
+            const selectedLevel = parseInt(e.target.value);
+            if (selectedLevel !== this.game.currentLevel) {
+                this.game.currentLevel = selectedLevel;
+                this.game.startNextLevel();
+            }
+        });
+        levelSelectorDiv.appendChild(levelSelect);
+        alwaysVisible.appendChild(levelSelectorDiv);
+
+        content.appendChild(alwaysVisible);
+
         // Add sections
         const sections = [
             {
@@ -267,7 +383,8 @@ export class DebugMenu {
                     { id: 'draw-card', label: 'Draw Card', icon: '🎴' },
                     { id: 'show-coordinates', label: 'Show Coordinates', icon: '📍' },
                     { id: 'kill-player', label: 'Kill Player', icon: '💀', style: 'background-color: #ff4444' },
-                    { id: 'skip-level', label: 'Skip Level', icon: '⏭️', style: 'background-color: #4CAF50; color: white;' }
+                    { id: 'skip-level', label: 'Skip Level', icon: '⏭️', style: 'background-color: #4CAF50; color: white;' },
+                    { id: 'toggle-inventory-grid', label: 'Show Inventory Grid', icon: '🎒' }
                 ]
             },
             {
@@ -292,9 +409,38 @@ export class DebugMenu {
             const sectionDiv = document.createElement('div');
             sectionDiv.className = 'debug-section';
 
+            // Collapsible: add header with toggle
             const sectionTitle = document.createElement('h3');
             sectionTitle.textContent = section.title;
+            sectionTitle.style.display = 'flex';
+            sectionTitle.style.alignItems = 'center';
+            sectionTitle.style.cursor = 'pointer';
+            let isCollapsible = section.title === 'Player Controls' || section.title === 'Enemy Controls';
+            let collapsed = isCollapsible ? true : false; // collapsed by default
+            let toggleBtn;
+            if (isCollapsible) {
+                toggleBtn = document.createElement('span');
+                toggleBtn.textContent = collapsed ? '►' : '▼';
+                toggleBtn.style.marginRight = '8px';
+                toggleBtn.style.fontSize = '16px';
+                toggleBtn.style.transition = 'transform 0.2s';
+                sectionTitle.prepend(toggleBtn);
+                sectionTitle.addEventListener('click', () => {
+                    collapsed = !collapsed;
+                    if (collapsed) {
+                        sectionContent.style.display = 'none';
+                        toggleBtn.textContent = '►';
+                    } else {
+                        sectionContent.style.display = '';
+                        toggleBtn.textContent = '▼';
+                    }
+                });
+            }
             sectionDiv.appendChild(sectionTitle);
+
+            // Section content wrapper for collapse
+            const sectionContent = document.createElement('div');
+            if (collapsed) sectionContent.style.display = 'none';
 
             section.actions.forEach(action => {
                 if (action.id === 'add-card') {
@@ -320,7 +466,7 @@ export class DebugMenu {
                     
                     cardSelector.appendChild(select);
                     cardSelector.appendChild(button);
-                    sectionDiv.appendChild(cardSelector);
+                    sectionContent.appendChild(cardSelector);
                 } else if (action.id === 'kill-enemy') {
                     // Create enemy selector for kill action
                     const enemySelector = document.createElement('div');
@@ -343,50 +489,24 @@ export class DebugMenu {
                     
                     enemySelector.appendChild(select);
                     enemySelector.appendChild(button);
-                    sectionDiv.appendChild(enemySelector);
-                } else {
+                    sectionContent.appendChild(enemySelector);
+                } else if (
+                    action.id !== 'skip-level' &&
+                    action.id !== 'toggle-inventory-grid' &&
+                    action.id !== 'toggle-hitbox-view'
+                ) {
+                    // Only add buttons not in always-visible
                     const button = document.createElement('button');
                     button.innerHTML = `${action.icon} ${action.label}`;
                     if (action.style) {
                         button.style.cssText = action.style;
                     }
                     button.onclick = () => this.handleDebugAction(action.id);
-                    sectionDiv.appendChild(button);
+                    sectionContent.appendChild(button);
                 }
             });
 
-            // Add level selector after the Player Controls section
-            if (section.title === 'Player Controls') {
-                const levelSelector = document.createElement('div');
-                levelSelector.className = 'card-selector';
-                levelSelector.style.marginTop = '10px';
-                
-                const levelLabel = document.createElement('div');
-                levelLabel.textContent = 'Select Level:';
-                levelLabel.style.color = '#fff';
-                levelLabel.style.marginBottom = '5px';
-                levelSelector.appendChild(levelLabel);
-                
-                const select = document.createElement('select');
-                for (let i = 1; i <= this.game.maxLevel; i++) {
-                    const option = document.createElement('option');
-                    option.value = i;
-                    option.textContent = `Level ${i}`;
-                    select.appendChild(option);
-                }
-                
-                select.addEventListener('change', (e) => {
-                    const selectedLevel = parseInt(e.target.value);
-                    if (selectedLevel !== this.game.currentLevel) {
-                        this.game.currentLevel = selectedLevel;
-                        this.game.startNextLevel();
-                    }
-                });
-                
-                levelSelector.appendChild(select);
-                sectionDiv.appendChild(levelSelector);
-            }
-
+            sectionDiv.appendChild(sectionContent);
             content.appendChild(sectionDiv);
         });
 
@@ -460,6 +580,9 @@ export class DebugMenu {
                 break;
             case 'toggle-hitbox-view':
                 this.toggleHitboxView();
+                break;
+            case 'toggle-inventory-grid':
+                this.game.backpack.toggleInventoryGrid();
                 break;
             case 'heal-player':
                 this.game.playerHealth = 100;
