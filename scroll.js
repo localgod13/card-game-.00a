@@ -1,13 +1,13 @@
 export class Scroll {
     constructor(type = 'base', effect = null, imagePath = './assets/Images/bpackscroll.png') {
         this.type = type; // e.g., 'base', 'fire', 'ice', etc.
-        this.effect = effect; // Function or description of what the scroll does
+        this.effect = effect; // Object containing name and execute function
         this.imagePath = imagePath;
     }
 
     use(game) {
-        if (typeof this.effect === 'function') {
-            this.effect(game);
+        if (this.effect && typeof this.effect.execute === 'function') {
+            this.effect.execute(game);
         } else {
             // Default: do nothing or show a message
             console.log('This scroll has no effect.');

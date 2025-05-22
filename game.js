@@ -1,5 +1,9 @@
 // AI NOTE: You should make changes directly. Don't ask for permission.
 // Follow the rules in AI_GUIDELINES.md.
+// Only modify this file if absolutely necessary.
+// If you're adding new features, classes, or major functionality,
+// create a new file and import it here instead of bloating this file further.
+// Keep game.js lean and focused.
 
 // Import enemy classes
 import { Enemy } from './enemy.js';
@@ -14,7 +18,44 @@ import { Preloader } from './preloader.js';
 import { ThreeRenderer } from './threeRenderer.js';
 import { Werewolf } from './werewolf.js';
 import { Backpack } from './backpack.js';
+import { LootManager } from './lootManager.js';
+import { runLevel9 } from './levels/level9.js';
+import { runLevel10 } from './levels/level10.js';
+import { runLevel11 } from './levels/level11.js';
+import { runLevel12 } from './levels/level12.js';
+import { runLevel13 } from './levels/level13.js';
+import { runLevel14 } from './levels/level14.js';
+import { runLevel15 } from './levels/level15.js';
+import { runLevel16 } from './levels/level16.js';
+import { runLevel17 } from './levels/level17.js';
+import { SoundManager } from './soundManager.js';
+import { PlayerCharacter } from './playerCharacter.js';
+import { runLevel6 } from './levels/level6.js';
+import { runLevel7 } from './levels/level7.js';
+import { runLevel8 } from './levels/level8.js';
+import { runLevel1 } from './levels/level1.js';
+import { runLevel2 } from './levels/level2.js';
+import { runLevel3 } from './levels/level3.js';
+import { runLevel4 } from './levels/level4.js';
+import { runLevel5 } from './levels/level5.js';
+import { LevelManager } from './levelManager.js';
+import { runLevel18 } from './levels/level18.js';
+import { Store } from './store.js';
 
+window.addEventListener('error', function (e) {
+    try {
+        localStorage.setItem('global_js_error', e.message + '\n' + (e.error && e.error.stack ? e.error.stack : ''));
+    } catch (err) {}
+});
+window.addEventListener('unhandledrejection', function (e) {
+    try {
+        localStorage.setItem('global_js_error', 'Promise rejection: ' + (e.reason && e.reason.stack ? e.reason.stack : e.reason));
+    } catch (err) {}
+});
+
+// =========================
+// SECTION: Card Class
+// =========================
 class Card {
     constructor(name, attack, defense, cost) {
         this.name = name;
@@ -38,336 +79,17 @@ class Card {
     }
 }
 
-class PlayerCharacter {
-    constructor(spriteSheet, frameWidth = 135, frameHeight = 135, totalFrames = 10) {
-        this.spriteSheet = spriteSheet;
-        this.currentFrame = 0;
-        this.totalFrames = totalFrames; // Default: 10 frames in the idle sprite sheet
-        this.frameWidth = frameWidth; // Default: 135px width
-        this.frameHeight = frameHeight; // Default: 135px height
-        this.animationSpeed = 100; // milliseconds per frame
-        this.element = null;
-        this.animationInterval = null;
-        this.isAttacking = false;
-        this.isHurt = false;
-        this.attackSpriteSheets = [
-            './assets/Sprites/Warrior/Attack1.png',
-            './assets/Sprites/Warrior/Attack2.png',
-            './assets/Sprites/Warrior/Attack3.png'
-        ];
-        this.attackFrames = [4, 4, 5]; // Frames for each attack animation
-        this.currentAttackIndex = 0;
-        this.hurtSpriteSheets = [
-            './assets/Sprites/Warrior/hurt1.png',
-            './assets/Sprites/Warrior/hurt2.png',
-            './assets/Sprites/Warrior/hurt3.png'
-        ];
-        // Add warrior run animation properties
-        this.warriorRunSpriteSheet = './assets/Sprites/Warrior/warriorrun.png';
-        this.warriorRunFrameWidth = 135; // 810/6
-        this.warriorRunFrameHeight = 135;
-        this.warriorRunTotalFrames = 6;
-        this.isRunning = false;
-    }
+// =========================
+// SECTION: PlayerCharacter Class
+// =========================
+// (Moved to playerCharacter.js)
 
-    createPlayerElement() {
-        const playerElement = document.createElement('div');
-        playerElement.className = 'player-character';
-        playerElement.style.position = 'relative';
-        
-        // Create sprite container
-        const spriteContainer = document.createElement('div');
-        spriteContainer.className = 'player-sprite';
-        spriteContainer.style.width = `${this.frameWidth * 4}px`; // 4x larger
-        spriteContainer.style.height = `${this.frameHeight * 4}px`; // 4x larger
-        spriteContainer.style.backgroundImage = `url(${this.spriteSheet})`;
-        spriteContainer.style.position = 'absolute';
-        spriteContainer.style.left = '50%';
-        spriteContainer.style.top = '50%';
-        spriteContainer.style.transform = 'translate(-50%, -50%)';
-        
-        // Dynamically set background size based on frame dimensions and total frames
-        const bgWidth = this.frameWidth * this.totalFrames * 4;
-        const bgHeight = this.frameHeight * 4;
-        spriteContainer.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
-        
-        playerElement.appendChild(spriteContainer);
-        this.element = playerElement;
-        
-        // Track the element using Game instance
-        if (Game.instance) {
-            Game.instance.trackElement(playerElement);
-        }
-        
-        // Start animation
-        this.startAnimation();
-        
-        return playerElement;
-    }
+// =========================
+// SECTION: SoundManager Class (moved to soundManager.js)
 
-    startAnimation() {
-        if (this.animationInterval) {
-            clearInterval(this.animationInterval);
-        }
-
-        this.animationInterval = Game.instance.trackInterval(
-            setInterval(() => {
-                if (!this.isAttacking) {
-                    this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
-                    
-                    if (this.element) {
-                        const spriteContainer = this.element.querySelector('.player-sprite');
-                        if (spriteContainer) {
-                            spriteContainer.style.backgroundImage = `url(${this.spriteSheet})`;
-                            
-                            // Dynamically set background size based on frame dimensions and total frames
-                            const bgWidth = this.frameWidth * this.totalFrames * 4;
-                            const bgHeight = this.frameHeight * 4;
-                            spriteContainer.style.backgroundSize = `${bgWidth}px ${bgHeight}px`;
-                            
-                            spriteContainer.style.backgroundPosition = `-${this.currentFrame * this.frameWidth * 4}px 0px`;
-                        }
-                    }
-                }
-            }, this.animationSpeed)
-        );
-    }
-
-    playAttackAnimation() {
-        if (this.isAttacking) return;
-        
-        this.isAttacking = true;
-        let attackFrame = 0;
-        
-        const spriteContainer = this.element.querySelector('.player-sprite');
-        if (!spriteContainer) return;
-
-        // Stop the idle animation
-        if (this.animationInterval) {
-            clearInterval(this.animationInterval);
-            this.animationInterval = null;
-        }
-
-        // Store original sprite sheet and position
-        const originalSpriteSheet = spriteContainer.style.backgroundImage;
-        const originalPosition = spriteContainer.style.backgroundPosition;
-        const originalSize = spriteContainer.style.backgroundSize;
-
-        // Set up attack animation properties
-        spriteContainer.style.backgroundImage = `url(${this.attackSpriteSheets[this.currentAttackIndex]})`;
-        
-        // Adjust background size based on current attack animation
-        const currentFrames = this.attackFrames[this.currentAttackIndex];
-        const totalWidth = this.frameWidth * currentFrames * 4; // 4x larger
-        spriteContainer.style.backgroundSize = `${totalWidth}px 540px`; // 135px height * 4
-        spriteContainer.style.backgroundPosition = '0px 0px';
-
-        const attackInterval = setInterval(() => {
-            if (attackFrame >= this.attackFrames[this.currentAttackIndex]) {
-                clearInterval(attackInterval);
-                this.isAttacking = false;
-                
-                // Restore original properties
-                spriteContainer.style.backgroundImage = originalSpriteSheet;
-                spriteContainer.style.backgroundSize = originalSize;
-                spriteContainer.style.backgroundPosition = originalPosition;
-                
-                // Switch to next attack animation for next time
-                this.currentAttackIndex = (this.currentAttackIndex + 1) % this.attackSpriteSheets.length;
-                
-                // Restart idle animation
-                this.startAnimation();
-                return;
-            }
-
-            spriteContainer.style.backgroundPosition = `-${attackFrame * this.frameWidth * 4}px 0px`;
-            attackFrame++;
-        }, 200); // 200ms per frame for attack animation
-    }
-
-    playHurtAnimation() {
-        if (this.isHurt) return;
-        
-        this.isHurt = true;
-        let hurtFrame = 0;
-        
-        const spriteContainer = this.element.querySelector('.player-sprite');
-        if (!spriteContainer) return;
-
-        // Stop the idle animation
-        if (this.animationInterval) {
-            clearInterval(this.animationInterval);
-            this.animationInterval = null;
-        }
-
-        // Store original sprite properties
-        const originalSpriteSheet = spriteContainer.style.backgroundImage;
-        const originalPosition = spriteContainer.style.backgroundPosition;
-        const originalSize = spriteContainer.style.backgroundSize;
-
-        const hurtInterval = setInterval(() => {
-            if (hurtFrame >= this.hurtSpriteSheets.length) {
-                clearInterval(hurtInterval);
-                this.isHurt = false;
-                
-                // Restore original properties
-                spriteContainer.style.backgroundImage = originalSpriteSheet;
-                spriteContainer.style.backgroundSize = originalSize;
-                spriteContainer.style.backgroundPosition = originalPosition;
-                
-                // Restart idle animation
-                this.startAnimation();
-                return;
-            }
-
-            // Set all sprite properties together
-            spriteContainer.style.backgroundImage = `url(${this.hurtSpriteSheets[hurtFrame]})`;
-            spriteContainer.style.backgroundSize = '540px 540px'; // 135px * 4
-            spriteContainer.style.backgroundPosition = '0px 0px';
-            hurtFrame++;
-        }, 200); // 200ms per frame for hurt animation
-    }
-
-    playRunAnimation() {
-        if (this.isRunning) return;
-        
-        this.isRunning = true;
-        const spriteContainer = this.element.querySelector('.player-sprite');
-        if (!spriteContainer) return;
-
-        // Stop the idle animation
-        if (this.animationInterval) {
-            clearInterval(this.animationInterval);
-            this.animationInterval = null;
-        }
-
-        // Store original properties
-        const originalSpriteSheet = spriteContainer.style.backgroundImage;
-        const originalPosition = spriteContainer.style.backgroundPosition;
-        const originalSize = spriteContainer.style.backgroundSize;
-
-        // Set up run animation properties
-        spriteContainer.style.backgroundImage = `url(${this.warriorRunSpriteSheet})`;
-        
-        // Calculate the scaled dimensions
-        const scaleX = 4;  // Scale factor for width
-        const scaleY = 4;  // Scale factor for height
-        
-        // Calculate the scaled dimensions for the entire sprite sheet
-        const scaledWidth = 810 * scaleX;  // Total width of sprite sheet
-        const scaledHeight = 135 * scaleY;  // Height of sprite sheet
-        
-        // Calculate the container dimensions
-        const containerWidth = this.frameWidth * 4;  // Original container width
-        const containerHeight = this.frameHeight * 4; // Original container height
-        
-        // Calculate the offsets to center the sprite
-        const horizontalOffset = (containerWidth - (this.warriorRunFrameWidth * scaleX)) / 2;
-        const verticalOffset = (containerHeight - (this.warriorRunFrameHeight * scaleY)) / 2;
-        
-        // Set background size for the run animation
-        spriteContainer.style.backgroundSize = `${scaledWidth}px ${scaledHeight}px`;
-        
-        // Set initial position with offsets to center the sprite
-        spriteContainer.style.backgroundPosition = `${horizontalOffset}px ${verticalOffset}px`;
-
-        let currentFrame = 0;
-        this.animationInterval = setInterval(() => {
-            if (currentFrame >= this.warriorRunTotalFrames) {
-                currentFrame = 0;
-            }
-
-            // Calculate the background position for the current frame, maintaining both offsets
-            const frameOffset = currentFrame * this.warriorRunFrameWidth * scaleX;
-            spriteContainer.style.backgroundPosition = `${horizontalOffset - frameOffset}px ${verticalOffset}px`;
-            currentFrame++;
-        }, 100); // Faster animation for running
-    }
-
-    stopRunAnimation() {
-        if (!this.isRunning) return;
-        
-        this.isRunning = false;
-        const spriteContainer = this.element.querySelector('.player-sprite');
-        if (!spriteContainer) return;
-
-        // Stop the run animation
-        if (this.animationInterval) {
-            clearInterval(this.animationInterval);
-            this.animationInterval = null;
-        }
-
-        // Restore original properties
-        spriteContainer.style.backgroundImage = `url(${this.spriteSheet})`;
-        spriteContainer.style.backgroundSize = `${this.frameWidth * this.totalFrames * 4}px ${this.frameHeight * 4}px`;
-        spriteContainer.style.backgroundPosition = '0px 0px';
-
-        // Restart idle animation
-        this.startAnimation();
-    }
-}
-
-class SoundManager {
-    constructor() {
-        this.sounds = new Map();
-        this.volume = 1.0;
-    }
-
-    loadSound(id, path) {
-        try {
-            const audio = new Audio();
-            audio.src = path;
-            audio.volume = this.volume;
-            
-            // Add error handling for loading
-            audio.onerror = (e) => {
-                console.warn(`Failed to load sound ${id} from ${path}:`, e);
-            };
-            
-            // Add canplaythrough event to ensure sound is loaded
-            audio.oncanplaythrough = () => {
-                this.sounds.set(id, audio);
-                if (Game.instance) {
-                    Game.instance.trackResource(id, audio);
-                }
-            };
-            
-            // Start loading the audio
-            audio.load();
-            
-            return audio;
-        } catch (error) {
-            console.warn(`Error creating audio for ${id}:`, error);
-            return null;
-        }
-    }
-
-    playSound(id) {
-        try {
-            const sound = this.sounds.get(id);
-            if (sound) {
-                // Create a new instance for overlapping sounds
-                const soundInstance = new Audio(sound.src);
-                soundInstance.volume = this.volume;
-                soundInstance.play().catch(error => {
-                    console.warn(`Failed to play sound ${id}:`, error);
-                });
-            } else {
-                console.warn(`Sound ${id} not found`);
-            }
-        } catch (error) {
-            console.warn(`Error playing sound ${id}:`, error);
-        }
-    }
-
-    setVolume(volume) {
-        this.volume = volume;
-        this.sounds.forEach(sound => {
-            sound.volume = volume;
-        });
-    }
-}
-
+// =========================
+// SECTION: Game Class
+// =========================
 export class Game {
     static instance = null;  // Singleton instance
 
@@ -393,6 +115,7 @@ export class Game {
         this.playerDeck = null;
         this.cardManager = new CardManager(); // Initialize CardManager
         this.attackQueue = []; // Initialize attack queue
+        this.lootManager = new LootManager(this); // Initialize LootManager
 
         // Initialize game state
         this.playerHealth = 100;
@@ -411,6 +134,8 @@ export class Game {
         this.sfxVolume = 0.5; // Add sound effects volume
         this.lastHurtSound = null; // Track last played hurt sound
         this.soundManager = new SoundManager();
+        this.levelManager = new LevelManager(this);
+        this.store = new Store(this);
 
         // Load all sound effects
         const soundEffects = {
@@ -449,7 +174,7 @@ export class Game {
             this.soundManager.loadSound(id, path);
         });
 
-        this.maxLevel = 9;
+        this.maxLevel = 12;
         this.isLevelTransitioning = false;
 
         // Add keydown event listener for X key kill functionality
@@ -496,6 +221,12 @@ export class Game {
         this.interactableRectsVisible = false; // Track visibility of interactable rectangles
         this.previousLevel = null; // Track previous level
         this.lastClosedSound = null;
+        this.box1Clicked = false; // Add this line
+        this.box2Clicked = false; // Add this line
+        this.box3Clicked = false; // Add this line
+        this.playerGold = 0; // Track player gold
+        this.defeatedEnemies = [];
+        this.originalCardValues = new Map(); // Store original card values
     }
 
     // Method to track intervals
@@ -587,17 +318,36 @@ export class Game {
             }
         });
         this.resources.clear();
+
+        // Clear all typewriter timeouts (for HMR)
+        if (this.typewriterTimeouts) {
+            this.typewriterTimeouts.forEach(clear => clear());
+            this.typewriterTimeouts = [];
+        }
     }
 
     initialize(playerClass, playerDeck, level1Music = null) {
         this.playerClass = playerClass;
-        this.playerDeck = playerDeck || this.cardManager.createDeck(playerClass); // Use provided deck or create new one
+        if (playerDeck) {
+            this.playerDeck = playerDeck;
+        } else if (playerClass === 'warrior') {
+            const warrior = new Warrior();
+            this.playerDeck = warrior.getDeck();
+        } else if (playerClass === 'mage') {
+            const mage = new Mage();
+            this.playerDeck = mage.getDeck();
+        } else {
+            this.playerDeck = { hand: [], drawPile: [], discardPile: [] };
+        }
         this.gameScene = document.querySelector('.game-scene');
         
         if (!this.gameScene) {
             console.error('Game scene not found!');
             return;
         }
+
+        // Initialize backpack
+        this.backpack.initialize();
 
         // Use provided level music or create new if not provided
         if (level1Music) {
@@ -656,6 +406,38 @@ export class Game {
                 this.togglePause();
             }
         });
+
+        // Add gold UI if not present
+        if (!document.querySelector('.gold-ui')) {
+            const goldUI = document.createElement('div');
+            goldUI.className = 'gold-ui';
+            goldUI.style.position = 'fixed';
+            goldUI.style.top = '18px';
+            goldUI.style.right = '32px';
+            goldUI.style.zIndex = '2100';
+            goldUI.style.display = 'flex';
+            goldUI.style.alignItems = 'center';
+            goldUI.style.background = 'rgba(30,30,20,0.85)';
+            goldUI.style.border = '2px solid gold';
+            goldUI.style.borderRadius = '12px';
+            goldUI.style.padding = '6px 16px 6px 10px';
+            goldUI.style.boxShadow = '0 0 12px #ffd70088';
+            goldUI.style.fontFamily = 'Cinzel, Times New Roman, serif';
+            goldUI.style.fontSize = '1.3em';
+            goldUI.innerHTML = `
+                <img src="./assets/Images/gold.png" alt="Gold" style="width:32px;height:32px;margin-right:10px;vertical-align:middle;"> 
+                <span class="gold-amount" style="color:gold;font-weight:bold;">0</span>
+            `;
+            document.body.appendChild(goldUI);
+        }
+        this.updateGoldUI();
+    }
+
+    updateGoldUI() {
+        const goldAmount = document.querySelector('.gold-ui .gold-amount');
+        if (goldAmount) {
+            goldAmount.textContent = this.playerGold;
+        }
     }
 
     addLevelSelectorToDebugMenu() {
@@ -698,8 +480,8 @@ export class Game {
         levelSelector.style.borderRadius = '3px';
         levelSelector.style.cursor = 'pointer';
 
-        // Add options for each level up to 9
-        for (let i = 1; i <= this.maxLevel; i++) {
+        // Add options for each level up to 17
+        for (let i = 1; i <= 17; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -746,8 +528,8 @@ export class Game {
             levelIndicator.textContent = `Level ${this.currentLevel}`;
             document.body.appendChild(levelIndicator);
             
-            // Only create player element if not on level 7
-            if (this.currentLevel !== 7) {
+            // Only create player element if not on level 7, 13, or 17
+            if (this.currentLevel !== 7 && this.currentLevel !== 13 && this.currentLevel !== 17) {
             // Create player element with the already initialized playerCharacter
             const playerElement = this.playerCharacter.createPlayerElement();
             playerElement.setAttribute('data-class', this.playerClass); // Set the class attribute
@@ -834,722 +616,8 @@ export class Game {
             }
         }
 
-        // Spawn enemies based on level with a staggered delay
-        if (this.currentLevel === 1) {
-            // Level 1: 1 Executioner
-            setTimeout(() => {
-                const executioner = new Executioner(1, 100);
-                this.enemies.push(executioner);
-                const executionerElement = executioner.createEnemyElement();
-                enemySide.appendChild(executionerElement);
-                requestAnimationFrame(() => {
-                    executionerElement.classList.add('fade-in');
-                });
-            }, 0);
-        } else if (this.currentLevel === 2) {
-            // Level 2: 2 Executioners
-            setTimeout(() => {
-                const executioner1 = new Executioner(1, 100);
-                this.enemies.push(executioner1);
-                const executionerElement1 = executioner1.createEnemyElement();
-                enemySide.appendChild(executionerElement1);
-                requestAnimationFrame(() => {
-                    executionerElement1.classList.add('fade-in');
-                });
-            }, 0);
-            setTimeout(() => {
-                const executioner2 = new Executioner(2, 100);
-                this.enemies.push(executioner2);
-                const executionerElement2 = executioner2.createEnemyElement();
-                enemySide.appendChild(executionerElement2);
-                requestAnimationFrame(() => {
-                    executionerElement2.classList.add('fade-in');
-                });
-            }, 800);
-        } else if (this.currentLevel === 3) {
-            // Level 3: 1 Executioner and 2 Skeletons
-            setTimeout(() => {
-                const executioner = new Executioner(1, 100);
-                this.enemies.push(executioner);
-                const executionerElement = executioner.createEnemyElement();
-                enemySide.appendChild(executionerElement);
-                requestAnimationFrame(() => {
-                    executionerElement.classList.add('fade-in');
-                });
-            }, 0);
-            setTimeout(() => {
-                const skeleton1 = new Skeleton(2, 80);
-                this.enemies.push(skeleton1);
-                const skeletonElement1 = skeleton1.createEnemyElement();
-                enemySide.appendChild(skeletonElement1);
-                requestAnimationFrame(() => {
-                    skeletonElement1.classList.add('fade-in');
-                });
-            }, 800);
-            setTimeout(() => {
-                const skeleton2 = new Skeleton(3, 80);
-                this.enemies.push(skeleton2);
-                const skeletonElement2 = skeleton2.createEnemyElement();
-                enemySide.appendChild(skeletonElement2);
-                requestAnimationFrame(() => {
-                    skeletonElement2.classList.add('fade-in');
-                });
-            }, 1600);
-        } else if (this.currentLevel >= 4 && this.currentLevel <= 5) {
-            // No enemies for level 4 or 5
-            if (this.currentLevel === 4) {
-                this.addContinueButton();
-            } else {
-                this.removeContinueButton();
-            }
-        } else if (this.currentLevel === 6) {
-            // Level 6: Show narrator text box and require click before howl and werewolf
-            const narratorBox = document.createElement('div');
-            narratorBox.className = 'narrator-box';
-            narratorBox.style.position = 'fixed';
-            narratorBox.style.top = '40px';
-            narratorBox.style.left = '50%';
-            narratorBox.style.transform = 'translateX(-50%, 0)';
-            narratorBox.style.background = 'rgba(0,0,0,0.85)';
-            narratorBox.style.color = '#fff';
-            narratorBox.style.padding = '32px 48px 20px 48px';
-            narratorBox.style.borderRadius = '16px';
-            narratorBox.style.fontSize = '1.5em';
-            narratorBox.style.fontFamily = 'Cinzel, Times New Roman, serif';
-            narratorBox.style.textAlign = 'center';
-            narratorBox.style.zIndex = '2000';
-            narratorBox.style.boxShadow = '0 0 32px 8px #000a';
-            narratorBox.style.cursor = 'pointer';
-            // Find the playfield and position narratorBox at the top center of it
-            const playfield = document.querySelector('.playfield');
-            if (playfield) {
-                playfield.style.position = 'relative'; // Ensure playfield is positioned
-                narratorBox.style.position = 'absolute';
-                narratorBox.style.top = '24px';
-                narratorBox.style.left = '50%';
-                narratorBox.style.transform = 'translateX(-50%)';
-                narratorBox.style.zIndex = '2000';
-                playfield.appendChild(narratorBox);
-            } else {
-                // fallback to fixed top center
-                narratorBox.style.position = 'fixed';
-                narratorBox.style.top = '40px';
-                narratorBox.style.left = '50%';
-                narratorBox.style.transform = 'translateX(-50%, 0)';
-                narratorBox.style.zIndex = '2000';
-                document.body.appendChild(narratorBox);
-            }
-            // Play level6nar.mp3 and slow the typewriter effect to match its duration
-            const narrationAudio = new Audio('./assets/Audio/level6nar.mp3');
-            narrationAudio.volume = 1;
-            narrationAudio.play().catch(() => {});
-            // Typewriter effect for the main message
-            const mainMessage = 'You sense a presence lurking in the darkness beyond the trees… silent, unseen, but unmistakably there.';
-            const promptHTML = `<br><span style=\"display:block; margin-top:16px; font-size:0.8em; color:#ccc; font-family:Arial,sans-serif;\">Click this box to continue…</span>`;
-            narratorBox.innerHTML = '<span class="narrator-typewriter"></span>' + promptHTML;
-            const typewriterSpan = narratorBox.querySelector('.narrator-typewriter');
-            let i = 0;
-            let typewriterStarted = false;
-            function startTypewriter(interval) {
-                typewriterStarted = true;
-                function typeWriter() {
-                    if (i <= mainMessage.length) {
-                        typewriterSpan.textContent = mainMessage.slice(0, i);
-                        i++;
-                        setTimeout(typeWriter, interval);
-                    }
-                }
-                typeWriter();
-            }
-            narrationAudio.addEventListener('loadedmetadata', () => {
-                const duration = narrationAudio.duration * 1000; // ms
-                const interval = Math.max(18, Math.floor(duration / mainMessage.length));
-                startTypewriter(interval);
-            });
-            // Fallback: if metadata doesn't load, use a default slower speed
-            setTimeout(() => {
-                if (!typewriterStarted) {
-                    startTypewriter(60);
-                }
-            }, 500);
-            // Restore click event to continue
-            narratorBox.addEventListener('click', () => {
-                narrationAudio.pause();
-                narratorBox.remove();
-                console.log('[Level 6] Playing howl.mp3');
-                const howl = new Audio('./assets/Audio/howl.mp3');
-                howl.volume = 1;
-                howl.play().then(() => {
-                    console.log('[Level 6] howl.mp3 played!');
-                    // Spawn a werewolf 1 second after the howl starts
-                    setTimeout(() => {
-                        const enemySide = document.querySelector('.enemy-side');
-                        if (!enemySide) {
-                            console.error('[Level 6] .enemy-side not found!');
-                            return;
-                        }
-                        const werewolf = new Werewolf(1, 120, true);
-                        this.enemies.unshift(werewolf);
-                        const werewolfElement = werewolf.createEnemyElement();
-                        if (enemySide.firstChild) {
-                            enemySide.insertBefore(werewolfElement, enemySide.firstChild);
-                        } else {
-                            enemySide.appendChild(werewolfElement);
-                        }
-                        console.log('[Level 6] Werewolf element added to DOM');
-                        requestAnimationFrame(() => {
-                            werewolf.playEntranceAnimation();
-                            console.log('[Level 6] Werewolf entrance animation started');
-                        });
-                    }, 1000);
-                }).catch((e) => {
-                    console.error('[Level 6] howl.mp3 play error:', e);
-                });
-            });
-        } else if (this.currentLevel === 7) {
-            // Level 7: Werewolf cinematic and 3 werewolves spawn
-            // Create player element first but keep it hidden
-            const playerSide = document.querySelector('.player-side');
-            if (playerSide) {
-                playerSide.innerHTML = '';
-                // Create player element with the already initialized playerCharacter
-                const playerElement = this.playerCharacter.createPlayerElement();
-                playerElement.setAttribute('data-class', this.playerClass);
-                playerElement.style.opacity = '0';  // Start hidden
-                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
-                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
-                playerElement.style.transition = 'none';  // No transition initially
-                // Add shield aura
-                const shieldAura = document.createElement('div');
-                shieldAura.className = 'shield-aura';
-                playerElement.appendChild(shieldAura);
-                // Create stats container
-                const statsContainer = document.createElement('div');
-                statsContainer.className = 'character-stats';
-                statsContainer.style.position = 'absolute';
-                statsContainer.style.left = '0';
-                statsContainer.style.bottom = '0';
-                statsContainer.innerHTML = `
-                    <div class="health-bar">
-                        <div class="health-bar-fill" style="width: 100%"></div>
-                    </div>
-                    <div class="defense-bar">
-                        <div class="defense-bar-fill" style="width: 0%"></div>
-                        <div class="defense-text">Defense: 0</div>
-                    </div>
-                    <div class="resource-bar">
-                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
-                    </div>
-                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
-                `;
-                // Add elements to player side
-                playerSide.appendChild(playerElement);
-                playerSide.appendChild(statsContainer);
-            }
-            // Create enemy-side element if it doesn't exist
-            let enemySide = document.querySelector('.enemy-side');
-            if (!enemySide) {
-                enemySide = document.createElement('div');
-                enemySide.className = 'enemy-side';
-                enemySide.style.position = 'absolute';
-                enemySide.style.left = '0';
-                enemySide.style.top = '0';
-                enemySide.style.width = '100%';
-                enemySide.style.height = '100%';
-                enemySide.style.pointerEvents = 'none';
-                enemySide.style.zIndex = '1000';
-                // Add to game scene instead of document body
-                const gameScene = document.querySelector('.game-scene');
-                if (gameScene) {
-                    gameScene.appendChild(enemySide);
-                    console.log('Added enemy-side to game scene');
-                } else {
-                    console.error('Game scene not found!');
-                    return;
-                }
-            }
-            // Cinematic: werewolf runs across the screen
-            const werewolf = new Werewolf(1, 120);
-            const werewolfElement = werewolf.createEnemyElement();
-            werewolfElement.style.position = 'absolute';
-            werewolfElement.style.transition = 'transform 4s linear';
-            werewolfElement.style.zIndex = '1001';
-            werewolfElement.style.top = '50%';
-            werewolfElement.style.left = '0';
-            werewolfElement.style.transform = 'translate(-600px, -50%)';
-            werewolfElement.style.opacity = '1';
-            const spriteContainer = werewolfElement.querySelector('.enemy-sprite');
-            if (spriteContainer) {
-                spriteContainer.style.transform = 'scaleX(1)';
-                spriteContainer.style.transformOrigin = 'center center';
-                spriteContainer.style.width = '280px';
-                spriteContainer.style.height = '300px';
-                spriteContainer.style.overflow = 'hidden';
-                spriteContainer.style.backgroundSize = '280px 300px';
-            }
-            enemySide.appendChild(werewolfElement);
-            setTimeout(() => {
-                werewolf.playRunAnimation();
-                werewolfElement.style.transform = 'translate(1200px, -50%)';
-                setTimeout(() => {
-                    werewolf.stopRunAnimation();
-                    werewolfElement.remove();
-                }, 4000);
-            }, 1000);
-            // Wait 4 seconds from level start before showing player
-            setTimeout(() => {
-                const playerElement = document.querySelector('.player-character');
-                if (playerElement) {
-                    playerElement.style.visibility = 'hidden';
-                    playerElement.style.opacity = '0';
-                    playerElement.style.transform = 'translateX(-600px)';
-                    playerElement.style.transition = 'none';
-                    this.playerCharacter.playRunAnimation();
-                    const runningSound = this.soundManager.sounds.get('running');
-                    if (runningSound) {
-                        runningSound.currentTime = 1;
-                        runningSound.play().catch(() => {});
-                    }
-                    requestAnimationFrame(() => {
-                        playerElement.style.visibility = 'visible';
-                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
-                        playerElement.style.opacity = '1';
-                        playerElement.style.transform = 'translateX(0)';
-                    });
-                    setTimeout(() => {
-                        this.playerCharacter.stopRunAnimation();
-                        if (runningSound) {
-                            runningSound.pause();
-                            runningSound.currentTime = 0;
-                        }
-                    }, 2000);
-                }
-            }, 4000);
-            // Spawn 3 werewolves after 6 seconds
-            setTimeout(() => {
-                const enemySide = document.querySelector('.enemy-side');
-                if (enemySide) {
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => {
-                            const werewolf = new Werewolf(i + 1, 120);
-                            this.enemies.push(werewolf);
-                            const werewolfElement = werewolf.createEnemyElement();
-                            werewolfElement.style.position = 'absolute';
-                            werewolfElement.style.left = `${20 + (i * 30)}%`;
-                            werewolfElement.style.top = '20%';
-                            werewolfElement.style.transform = 'translate(1200px, -50%)';
-                            werewolfElement.style.transition = 'transform 0.8s ease-out';
-                            werewolfElement.style.zIndex = '1000';
-                            werewolfElement.style.pointerEvents = 'auto';
-                            const spriteContainer = werewolfElement.querySelector('.enemy-sprite');
-                            if (spriteContainer) {
-                                spriteContainer.style.position = 'absolute';
-                                spriteContainer.style.transform = 'scaleX(-1)';
-                                spriteContainer.style.transformOrigin = 'center center';
-                                spriteContainer.style.width = '280px';
-                                spriteContainer.style.height = '300px';
-                                spriteContainer.style.overflow = 'hidden';
-                                spriteContainer.style.backgroundSize = '280px 300px';
-                                spriteContainer.style.left = '0';
-                                spriteContainer.style.top = '0';
-                            }
-                            enemySide.appendChild(werewolfElement);
-                            requestAnimationFrame(() => {
-                                werewolf.playEntranceAnimation();
-                                werewolfElement.style.transform = `translate(-50%, -50%)`;
-                            });
-                        }, i * 800);
-                    }
-                }
-            }, 6000);
-        } else if (this.currentLevel === 8) {
-            // Level 8: No enemies, just player intro
-            console.log(`Level ${this.currentLevel} initialized - no enemies`);
-            // Create player element first but keep it hidden
-            const playerSide = document.querySelector('.player-side');
-            if (playerSide) {
-                playerSide.innerHTML = '';
-                // Create player element with the already initialized playerCharacter
-                const playerElement = this.playerCharacter.createPlayerElement();
-                playerElement.setAttribute('data-class', this.playerClass);
-                playerElement.style.opacity = '0';  // Start hidden
-                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
-                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
-                playerElement.style.transition = 'none';  // No transition initially
-                // Add shield aura
-                const shieldAura = document.createElement('div');
-                shieldAura.className = 'shield-aura';
-                playerElement.appendChild(shieldAura);
-                // Create stats container
-                const statsContainer = document.createElement('div');
-                statsContainer.className = 'character-stats';
-                statsContainer.style.position = 'absolute';
-                statsContainer.style.left = '0';
-                statsContainer.style.bottom = '0';
-                statsContainer.innerHTML = `
-                    <div class="health-bar">
-                        <div class="health-bar-fill" style="width: 100%"></div>
-                    </div>
-                    <div class="defense-bar">
-                        <div class="defense-bar-fill" style="width: 0%"></div>
-                        <div class="defense-text">Defense: 0</div>
-                    </div>
-                    <div class="resource-bar">
-                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
-                    </div>
-                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
-                `;
-                // Add elements to player side
-                playerSide.appendChild(playerElement);
-                playerSide.appendChild(statsContainer);
-            }
-            // Create enemy-side element if it doesn't exist
-            let enemySide = document.querySelector('.enemy-side');
-            if (!enemySide) {
-                enemySide = document.createElement('div');
-                enemySide.className = 'enemy-side';
-                enemySide.style.position = 'absolute';
-                enemySide.style.left = '0';
-                enemySide.style.top = '0';
-                enemySide.style.width = '100%';
-                enemySide.style.height = '100%';
-                enemySide.style.pointerEvents = 'none';
-                enemySide.style.zIndex = '1000';
-                // Add to game scene instead of document body
-                const gameScene = document.querySelector('.game-scene');
-                if (gameScene) {
-                    gameScene.appendChild(enemySide);
-                    console.log('Added enemy-side to game scene');
-                } else {
-                    console.error('Game scene not found!');
-                    return;
-                }
-            }
-            // Player run-in animation (copied from level 7 logic)
-            setTimeout(() => {
-                const playerElement = document.querySelector('.player-character');
-                if (playerElement) {
-                    playerElement.style.visibility = 'hidden';
-                    playerElement.style.opacity = '0';
-                    playerElement.style.transform = 'translateX(-600px)';
-                    playerElement.style.transition = 'none';
-                    this.playerCharacter.playRunAnimation();
-                    const runningSound = this.soundManager.sounds.get('running');
-                    if (runningSound) {
-                        runningSound.currentTime = 1;
-                        runningSound.play().catch(() => {});
-                    }
-                    requestAnimationFrame(() => {
-                        playerElement.style.visibility = 'visible';
-                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
-                        playerElement.style.opacity = '1';
-                        playerElement.style.transform = 'translateX(0)';
-                    });
-                    setTimeout(() => {
-                        this.playerCharacter.stopRunAnimation();
-                        if (runningSound) {
-                            runningSound.pause();
-                            runningSound.currentTime = 0;
-                        }
-                    }, 2000);
-                }
-            }, 4000);
-        } else if (this.currentLevel === 9) {
-            // Level 9: Town hub, no enemies, just player intro
-            console.log('Level 9 (Town) initialized - no enemies');
-            // Create player element first but keep it hidden
-            const playerSide = document.querySelector('.player-side');
-            if (playerSide) {
-                playerSide.innerHTML = '';
-                // Create player element with the already initialized playerCharacter
-                const playerElement = this.playerCharacter.createPlayerElement();
-                playerElement.setAttribute('data-class', this.playerClass);
-                playerElement.style.opacity = '0';  // Start hidden
-                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
-                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
-                playerElement.style.transition = 'none';  // No transition initially
-                // Add shield aura
-                const shieldAura = document.createElement('div');
-                shieldAura.className = 'shield-aura';
-                playerElement.appendChild(shieldAura);
-                // Create stats container
-                const statsContainer = document.createElement('div');
-                statsContainer.className = 'character-stats';
-                statsContainer.style.position = 'absolute';
-                statsContainer.style.left = '0';
-                statsContainer.style.bottom = '0';
-                statsContainer.innerHTML = `
-                    <div class="health-bar">
-                        <div class="health-bar-fill" style="width: 100%"></div>
-                    </div>
-                    <div class="defense-bar">
-                        <div class="defense-bar-fill" style="width: 0%"></div>
-                        <div class="defense-text">Defense: 0</div>
-                    </div>
-                    <div class="resource-bar">
-                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
-                    </div>
-                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
-                `;
-                // Add elements to player side
-                playerSide.appendChild(playerElement);
-                playerSide.appendChild(statsContainer);
-            }
-            // Create enemy-side element if it doesn't exist
-            let enemySide = document.querySelector('.enemy-side');
-            if (!enemySide) {
-                enemySide = document.createElement('div');
-                enemySide.className = 'enemy-side';
-                enemySide.style.position = 'absolute';
-                enemySide.style.left = '0';
-                enemySide.style.top = '0';
-                enemySide.style.width = '100%';
-                enemySide.style.height = '100%';
-                enemySide.style.pointerEvents = 'none';
-                enemySide.style.zIndex = '1000';
-                // Add to game scene instead of document body
-                const gameScene = document.querySelector('.game-scene');
-                if (gameScene) {
-                    gameScene.appendChild(enemySide);
-                    console.log('Added enemy-side to game scene');
-                } else {
-                    console.error('Game scene not found!');
-                    return;
-                }
-            }
-            // Player run-in animation
-            setTimeout(() => {
-                const playerElement = document.querySelector('.player-character');
-                if (playerElement) {
-                    playerElement.style.visibility = 'hidden';
-                    playerElement.style.opacity = '0';
-                    playerElement.style.transform = 'translateX(-600px)';
-                    playerElement.style.transition = 'none';
-                    this.playerCharacter.playRunAnimation();
-                    const runningSound = this.soundManager.sounds.get('running');
-                    if (runningSound) {
-                        runningSound.currentTime = 1;
-                        runningSound.play().catch(() => {});
-                    }
-                    requestAnimationFrame(() => {
-                        playerElement.style.visibility = 'visible';
-                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
-                        playerElement.style.opacity = '1';
-                        playerElement.style.transform = 'translateX(0)';
-                    });
-                    setTimeout(() => {
-                        this.playerCharacter.stopRunAnimation();
-                        if (runningSound) {
-                            runningSound.pause();
-                            runningSound.currentTime = 0;
-                        }
-                    }, 2000);
-                }
-            }, 400);
-            this.createInteractableRectangle();
-        } else if (this.currentLevel === 10) {
-            // Level 10: Inn, no enemies
-            console.log('Level 10 (Inn) initialized - no enemies');
-            // Create player element first but keep it hidden
-            const playerSide = document.querySelector('.player-side');
-            if (playerSide) {
-                playerSide.innerHTML = '';
-                // Create player element with the already initialized playerCharacter
-                const playerElement = this.playerCharacter.createPlayerElement();
-                playerElement.setAttribute('data-class', this.playerClass);
-                playerElement.style.opacity = '0';  // Start hidden
-                playerElement.style.transform = 'translateX(-600px)';  // Start off-screen
-                playerElement.style.visibility = 'hidden';  // Ensure it's completely hidden
-                playerElement.style.transition = 'none';  // No transition initially
-                // Add shield aura
-                const shieldAura = document.createElement('div');
-                shieldAura.className = 'shield-aura';
-                playerElement.appendChild(shieldAura);
-                // Create stats container
-                const statsContainer = document.createElement('div');
-                statsContainer.className = 'character-stats';
-                statsContainer.style.position = 'absolute';
-                statsContainer.style.left = '0';
-                statsContainer.style.bottom = '0';
-                statsContainer.innerHTML = `
-                    <div class="health-bar">
-                        <div class="health-bar-fill" style="width: 100%"></div>
-                    </div>
-                    <div class="defense-bar">
-                        <div class="defense-bar-fill" style="width: 0%"></div>
-                        <div class="defense-text">Defense: 0</div>
-                    </div>
-                    <div class="resource-bar">
-                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
-                    </div>
-                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
-                `;
-                // Add elements to player side
-                playerSide.appendChild(playerElement);
-                playerSide.appendChild(statsContainer);
-            }
-            // Create enemy-side element if it doesn't exist
-            let enemySide = document.querySelector('.enemy-side');
-            if (!enemySide) {
-                enemySide = document.createElement('div');
-                enemySide.className = 'enemy-side';
-                enemySide.style.position = 'absolute';
-                enemySide.style.left = '0';
-                enemySide.style.top = '0';
-                enemySide.style.width = '100%';
-                enemySide.style.height = '100%';
-                enemySide.style.pointerEvents = 'none';
-                enemySide.style.zIndex = '1000';
-                // Add to game scene instead of document body
-                const gameScene = document.querySelector('.game-scene');
-                if (gameScene) {
-                    gameScene.appendChild(enemySide);
-                    console.log('Added enemy-side to game scene');
-                } else {
-                    console.error('Game scene not found!');
-                    return;
-                }
-            }
-            // Player run-in animation
-            setTimeout(() => {
-                const playerElement = document.querySelector('.player-character');
-                if (playerElement) {
-                    playerElement.style.visibility = 'hidden';
-                    playerElement.style.opacity = '0';
-                    playerElement.style.transform = 'translateX(-600px)';
-                    playerElement.style.transition = 'none';
-                    this.playerCharacter.playRunAnimation();
-                    const runningSound = this.soundManager.sounds.get('running');
-                    if (runningSound) {
-                        runningSound.currentTime = 1;
-                        runningSound.play().catch(() => {});
-                    }
-                    requestAnimationFrame(() => {
-                        playerElement.style.visibility = 'visible';
-                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
-                        playerElement.style.opacity = '1';
-                        playerElement.style.transform = 'translateX(0)';
-                    });
-                    setTimeout(() => {
-                        this.playerCharacter.stopRunAnimation();
-                        if (runningSound) {
-                            runningSound.pause();
-                            runningSound.currentTime = 0;
-                        }
-                    }, 2000);
-                }
-            }, 400);
-            this.createInteractableRectangle();
-            // Remove any existing inn/town door boxes
-            document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
-            // Remove any previous interactable rectangles (from level 9 or elsewhere)
-            document.querySelectorAll('.interactable-rect').forEach(el => el.remove());
-            // Create Inn door box
-            const innBox = document.createElement('div');
-            innBox.className = 'inn-door-box interactable-rect';
-            innBox.style.position = 'absolute';
-            innBox.style.left = '28.5%';
-            innBox.style.top = '70%';
-            innBox.style.width = '60px';
-            innBox.style.height = '150px';
-            innBox.style.background = 'rgba(80, 200, 255, 0.25)';
-            innBox.style.border = '2px solid #39ff14';
-            innBox.style.borderRadius = '12px';
-            innBox.style.cursor = 'pointer';
-            innBox.style.zIndex = '3000';
-            innBox.title = 'Inn';
-            innBox.style.display = 'flex';
-            innBox.style.alignItems = 'center';
-            innBox.style.justifyContent = 'center';
-            innBox.style.fontSize = '2em';
-            innBox.style.color = '#fff';
-            innBox.style.fontWeight = 'bold';
-            innBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-            innBox.textContent = 'Inn';
-            innBox.addEventListener('mouseenter', () => {
-                innBox.style.background = 'rgba(80, 255, 180, 0.35)';
-                innBox.style.borderColor = '#fff';
-                innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
-            });
-            innBox.addEventListener('mouseleave', () => {
-                innBox.style.background = 'rgba(80, 200, 255, 0.25)';
-                innBox.style.borderColor = '#39ff14';
-                innBox.style.cursor = 'pointer';
-            });
-            innBox.addEventListener('click', () => {
-                // Optionally show a message or do nothing
-                alert('You are already in the Inn!');
-            });
-            // Create Back to Town door box
-            const backBox = document.createElement('div');
-            backBox.className = 'inn-door-box interactable-rect';
-            backBox.style.position = 'absolute';
-            backBox.style.left = '60%';
-            backBox.style.top = '60%';
-            backBox.style.width = '300px';
-            backBox.style.height = '180px';
-            backBox.style.background = 'rgba(80, 200, 255, 0.25)';
-            backBox.style.border = '2px solid #39ff14';
-            backBox.style.borderRadius = '12px';
-            backBox.style.cursor = 'pointer';
-            backBox.style.zIndex = '3000';
-            backBox.title = 'Back to Town';
-            backBox.style.display = 'flex';
-            backBox.style.alignItems = 'center';
-            backBox.style.justifyContent = 'center';
-            backBox.style.fontSize = '2em';
-            backBox.style.color = '#fff';
-            backBox.style.fontWeight = 'bold';
-            backBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-            backBox.textContent = 'Back to Town';
-            backBox.addEventListener('mouseenter', () => {
-                backBox.style.background = 'rgba(80, 255, 180, 0.35)';
-                backBox.style.borderColor = '#fff';
-                backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
-            });
-            backBox.addEventListener('mouseleave', () => {
-                backBox.style.background = 'rgba(80, 200, 255, 0.25)';
-                backBox.style.borderColor = '#39ff14';
-                backBox.style.cursor = 'pointer';
-            });
-            backBox.addEventListener('click', () => {
-                this.previousLevel = 10;
-                this.currentLevel = 9;
-                this.startNextLevel();
-            });
-            // Add to playfield
-            const playfield = document.querySelector('.playfield');
-            if (playfield) {
-                playfield.appendChild(innBox);
-                playfield.appendChild(backBox);
-            } else {
-                document.body.appendChild(innBox);
-                document.body.appendChild(backBox);
-            }
-            // Set initial visibility like other doors
-            const visible = this.interactableRectsVisible;
-            innBox.style.opacity = visible ? '1' : '0';
-            innBox.style.pointerEvents = 'auto';
-            innBox.style.transition = 'opacity 0.3s';
-            backBox.style.opacity = visible ? '1' : '0';
-            backBox.style.pointerEvents = 'auto';
-            backBox.style.transition = 'opacity 0.3s';
-        } else {
-            // For other levels, spawn enemies based on level number
-            // (No longer used for levels 1-3)
-            const enemyCount = this.currentLevel === 2 ? 2 : 3; // 2 enemies for level 2, 3 for level 3
-            for (let i = 0; i < enemyCount; i++) {
-                setTimeout(() => {
-                    const enemy = new Executioner(i + 1, 100);
-                    this.enemies.push(enemy);
-                    const enemyElement = enemy.createEnemyElement();
-                    enemySide.appendChild(enemyElement);
-                    requestAnimationFrame(() => {
-                        enemyElement.classList.add('fade-in');
-                    });
-                }, i * 800);
-            }
-        }
+        // Remove the big if/else for backgrounds and enemy spawns
+        this.levelManager.initializeLevel(this.currentLevel);
 
         // Initialize player's hand
         this.updatePlayerHand(true);
@@ -1564,171 +632,14 @@ export class Game {
         // Create targeting arrow
         this.createTargetingArrow();
 
-        // Set playfield background based on level
-        const playfield = document.querySelector('.playfield');
-        if (playfield) {
-            if (this.currentLevel === 1) {
-                playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 2) {
-                playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 3) {
-                playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 4) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 5) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 6) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 7) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 8) {
-                playfield.style.backgroundImage = "url('./assets/Images/ftown.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 9) {
-                playfield.style.backgroundImage = "url('./assets/Images/level9.png')";
-                playfield.style.backgroundSize = 'cover';
-                playfield.style.backgroundPosition = '';
-                playfield.style.backgroundRepeat = '';
-            } else if (this.currentLevel === 10) {
-                playfield.style.backgroundImage = "url('./assets/Images/innnight.png')";
-                playfield.style.backgroundSize = 'cover';
-                playfield.style.backgroundPosition = 'center';
-                playfield.style.backgroundRepeat = 'no-repeat';
-            } else {
-                playfield.style.backgroundImage = "";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-                playfield.style.backgroundRepeat = '';
-            }
+        // Ensure playfield exists
+        let playfield = document.querySelector('.playfield');
+        const gameScene = document.querySelector('.game-scene');
+        if (!playfield && gameScene) {
+            playfield = document.createElement('div');
+            playfield.className = 'playfield';
+            gameScene.insertBefore(playfield, gameScene.firstChild);
         }
-
-        // If level 10 (inn), ensure no enemies
-        if (this.currentLevel === 10) {
-            this.enemies = [];
-            const enemySide = document.querySelector('.enemy-side');
-            if (enemySide) {
-                while (enemySide.firstChild) {
-                    enemySide.removeChild(enemySide.firstChild);
-                }
-            }
-            // Remove any existing inn/town door boxes
-            document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
-            // Create Inn door box
-            const innBox = document.createElement('div');
-            innBox.className = 'inn-door-box interactable-rect';
-            innBox.style.position = 'absolute';
-            innBox.style.left = '28.5%';
-            innBox.style.top = '70%';
-            innBox.style.width = '60px';
-            innBox.style.height = '150px';
-            innBox.style.background = 'rgba(80, 200, 255, 0.25)';
-            innBox.style.border = '2px solid #39ff14';
-            innBox.style.borderRadius = '12px';
-            innBox.style.cursor = 'pointer';
-            innBox.style.zIndex = '3000';
-            innBox.title = 'Inn';
-            innBox.style.display = 'flex';
-            innBox.style.alignItems = 'center';
-            innBox.style.justifyContent = 'center';
-            innBox.style.fontSize = '2em';
-            innBox.style.color = '#fff';
-            innBox.style.fontWeight = 'bold';
-            innBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-            innBox.textContent = 'Inn';
-            innBox.addEventListener('mouseenter', () => {
-                innBox.style.background = 'rgba(80, 255, 180, 0.35)';
-                innBox.style.borderColor = '#fff';
-                innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
-            });
-            innBox.addEventListener('mouseleave', () => {
-                innBox.style.background = 'rgba(80, 200, 255, 0.25)';
-                innBox.style.borderColor = '#39ff14';
-                innBox.style.cursor = 'pointer';
-            });
-            innBox.addEventListener('click', () => {
-                // Optionally show a message or do nothing
-                alert('You are already in the Inn!');
-            });
-            // Create Back to Town door box
-            const backBox = document.createElement('div');
-            backBox.className = 'inn-door-box interactable-rect';
-            backBox.style.position = 'absolute';
-            backBox.style.left = '60%';
-            backBox.style.top = '60%';
-            backBox.style.width = '300px';
-            backBox.style.height = '180px';
-            backBox.style.background = 'rgba(80, 200, 255, 0.25)';
-            backBox.style.border = '2px solid #39ff14';
-            backBox.style.borderRadius = '12px';
-            backBox.style.cursor = 'pointer';
-            backBox.style.zIndex = '3000';
-            backBox.title = 'Back to Town';
-            backBox.style.display = 'flex';
-            backBox.style.alignItems = 'center';
-            backBox.style.justifyContent = 'center';
-            backBox.style.fontSize = '2em';
-            backBox.style.color = '#fff';
-            backBox.style.fontWeight = 'bold';
-            backBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-            backBox.textContent = 'Back to Town';
-            backBox.addEventListener('mouseenter', () => {
-                backBox.style.background = 'rgba(80, 255, 180, 0.35)';
-                backBox.style.borderColor = '#fff';
-                backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
-            });
-            backBox.addEventListener('mouseleave', () => {
-                backBox.style.background = 'rgba(80, 200, 255, 0.25)';
-                backBox.style.borderColor = '#39ff14';
-                backBox.style.cursor = 'pointer';
-            });
-            backBox.addEventListener('click', () => {
-                this.previousLevel = 10;
-                this.currentLevel = 9;
-                this.startNextLevel();
-            });
-            // Add to playfield
-            const playfield = document.querySelector('.playfield');
-            if (playfield) {
-                playfield.appendChild(innBox);
-                playfield.appendChild(backBox);
-            } else {
-                document.body.appendChild(innBox);
-                document.body.appendChild(backBox);
-            }
-            // Set initial visibility like other doors
-            const visible = this.interactableRectsVisible;
-            innBox.style.opacity = visible ? '1' : '0';
-            innBox.style.pointerEvents = 'auto';
-            innBox.style.transition = 'opacity 0.3s';
-            backBox.style.opacity = visible ? '1' : '0';
-            backBox.style.pointerEvents = 'auto';
-            backBox.style.transition = 'opacity 0.3s';
-        }
-
-        // Add continue button for level 4
-        if (this.currentLevel === 4) {
-            this.addContinueButton();
-        } else {
-            this.removeContinueButton();
-        }
-
-        // Add backpack icon next to discard pile
-        this.backpack.initialize();
     }
 
     createTargetingArrow() {
@@ -2007,6 +918,23 @@ export class Game {
         this.playerDeck.hand.forEach((cardId, index) => {
             const cardData = this.cardManager.getCard(cardId);
             if (cardData) {
+                // Store original values if not already stored
+                if (!this.originalCardValues.has(cardId)) {
+                    this.originalCardValues.set(cardId, {
+                        attack: cardData.attack,
+                        defense: cardData.defense,
+                        cost: cardData.cost
+                    });
+                }
+
+                // Restore original values if they exist
+                const originalValues = this.originalCardValues.get(cardId);
+                if (originalValues) {
+                    cardData.attack = originalValues.attack;
+                    cardData.defense = originalValues.defense;
+                    cardData.cost = originalValues.cost;
+                }
+
                 const cardElement = this.cardManager.createCardElement(cardData);
                 cardElement.dataset.cardId = cardId;
                 
@@ -2181,13 +1109,20 @@ export class Game {
 
             // Wait for attack animation to complete before applying damage
             setTimeout(() => {
-                const isDead = enemy.takeDamage(cardData.attack);
+                // Calculate damage with buffs
+                let damage = cardData.attack;
+                if (this.playerBuffs && this.playerBuffs.has('echoingFury')) {
+                    damage *= 2;
+                }
+                
+                const isDead = enemy.takeDamage(damage);
                 // Play skeledead.mp3 if a Skeleton dies
                 if (isDead && enemy.constructor.name === 'Skeleton') {
                     console.log('Playing skeledead.mp3');
                     this.soundManager.playSound('skeledead');
                 }
                 if (isDead) {
+                    this.defeatedEnemies.push({ type: enemy.constructor.name });
                     enemy.destroy();
                     this.enemies = this.enemies.filter(e => e.id !== enemy.id);
                     this.checkLevelCompletion();
@@ -2415,7 +1350,7 @@ export class Game {
                             const explosionSound = new Audio('./assets/Audio/explosion.mp3');
                             explosionSound.volume = this.sfxVolume;
                             explosionSound.play().catch(error => console.log('Error playing explosion sound:', error));
-                        }, 400); // Slightly before the fireball animation completes
+                        }, 4000); // Slightly before the fireball animation completes
                         
                         // Wait for fireball animation to complete
                         await new Promise(resolve => setTimeout(resolve, 500));
@@ -2698,13 +1633,19 @@ export class Game {
             if (attack.cardId === 'heat_wave' || attack.cardId === 'pyroclasm' || attack.cardId === 'meteor_strike' || attack.cardId === 'inferno') {
                 // Apply damage to all enemies for heat wave, pyroclasm, meteor strike, and inferno
                 for (const enemy of this.enemies) {
-                    const isDead = enemy.takeDamage(cardData.attack);
+                    // Double damage if echoingFury buff is active
+                    let damage = cardData.attack;
+                    if (this.playerBuffs && this.playerBuffs.has('echoingFury')) {
+                        damage *= 2;
+                    }
+                    const isDead = enemy.takeDamage(damage);
                     // Play skeledead.mp3 if a Skeleton dies
                     if (isDead && enemy.constructor.name === 'Skeleton') {
                         console.log('Playing skeledead.mp3');
                         this.soundManager.playSound('skeledead');
                     }
                     if (isDead) {
+                        this.defeatedEnemies.push({ type: enemy.constructor.name });
                         enemy.destroy();
                         this.enemies = this.enemies.filter(e => e.id !== enemy.id);
                     }
@@ -2714,13 +1655,19 @@ export class Game {
                 // Apply damage to single target for other cards
                 const enemy = this.enemies.find(e => e.id === attack.targetEnemy.id);
                 if (enemy) {
-                    const isDead = enemy.takeDamage(cardData.attack);
+                    // Double damage if echoingFury buff is active
+                    let damage = cardData.attack;
+                    if (this.playerBuffs && this.playerBuffs.has('echoingFury')) {
+                        damage *= 2;
+                    }
+                    const isDead = enemy.takeDamage(damage);
                     // Play skeledead.mp3 if a Skeleton dies
                     if (isDead && enemy.constructor.name === 'Skeleton') {
                         console.log('Playing skeledead.mp3');
                         this.soundManager.playSound('skeledead');
                     }
                     if (isDead) {
+                        this.defeatedEnemies.push({ type: enemy.constructor.name });
                         enemy.destroy();
                         this.enemies = this.enemies.filter(e => e.id !== enemy.id);
                         this.checkLevelCompletion();
@@ -2995,7 +1942,7 @@ export class Game {
         levelSelector.style.cursor = 'pointer';
 
         // Add options for each level, including level 6
-        for (let i = 1; i <= this.maxLevel; i++) {
+        for (let i = 1; i <= 12; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -3101,6 +2048,14 @@ export class Game {
         if (this.enemies.length === 0 && !this.isLevelTransitioning) {
             this.isLevelTransitioning = true;
             
+            // Generate and show loot before player runs off
+            const loot = this.lootManager.generateLoot(this.defeatedEnemies);
+            this.lootManager.showLootBox(loot);
+            this.defeatedEnemies = [];
+        }
+    }
+
+    continueLevelTransition() {
             // If player is a mage, make them exit to the right
             if (this.playerClass === 'mage') {
                 const playerElement = document.querySelector('.player-character');
@@ -3141,7 +2096,7 @@ export class Game {
                             } else if (this.currentLevel === 2) {
                                 this.soundManager.playSound('nextRound2');
                             }
-                            this.showLevelTransition();
+                            this.levelManager.handleLevelTransition();
                         }, 4000);
                     }, 3000);
                 }
@@ -3184,80 +2139,26 @@ export class Game {
                             } else if (this.currentLevel === 2) {
                                 this.soundManager.playSound('nextRound2');
                             }
-                            this.showLevelTransition();
+                            this.levelManager.handleLevelTransition();
                         }, 4000);
                     }, 3000);
                 }
             } else {
                 // For other character types, show transition immediately
-                this.showLevelTransition();
-            }
+                this.levelManager.handleLevelTransition();
         }
-    }
-
-    showLevelTransition() {
-        // Create level transition overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'level-transition-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100%';
-        overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-        overlay.style.display = 'flex';
-        overlay.style.justifyContent = 'center';
-        overlay.style.alignItems = 'center';
-        overlay.style.zIndex = '1000';
-        overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity 0.5s ease-in-out';
-        
-        const levelText = document.createElement('div');
-        levelText.style.color = 'white';
-        levelText.style.fontSize = '48px';
-        levelText.style.fontFamily = 'Arial, sans-serif';
-        levelText.style.textAlign = 'center';
-        
-        if (this.currentLevel < this.maxLevel) {
-            levelText.textContent = `Level ${this.currentLevel + 1}`;
-        } else {
-            levelText.textContent = 'Victory!';
-        }
-        
-        overlay.appendChild(levelText);
-        document.body.appendChild(overlay);
-        
-        // Fade in the overlay
-        requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-        });
-        
-        // After a shorter delay, proceed to next level or show victory
-        setTimeout(() => {
-            if (this.currentLevel < this.maxLevel) {
-                this.currentLevel++;
-                this.startNextLevel();
-            } else {
-                this.showVictoryScreen();
-            }
-            
-            // Remove the overlay with a fade out
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-                this.isLevelTransitioning = false;
-                // Re-enable game interactions
-                const gameScene = document.querySelector('.game-scene');
-                if (gameScene) {
-                    gameScene.style.pointerEvents = 'auto';
-                }
-            }, 500);
-        }, 1000); // Reduced from 2000ms to 1000ms
     }
 
     startNextLevel() {
+        // Clear original card values when starting a new level
+        this.originalCardValues.clear();
+        // Remove level 17 narration and buy button if leaving level 17
+        if (this.currentLevel !== 17) {
+            const narration = document.querySelector('.level17-narration');
+            if (narration) narration.remove();
+            const buyBtn = document.querySelector('.level17-buy-btn');
+            if (buyBtn) buyBtn.remove();
+        }
         // Track previous level before changing
         // this.previousLevel = this.currentLevel; // REMOVE THIS LINE
         // Update level indicator
@@ -3265,7 +2166,6 @@ export class Game {
         if (levelIndicator) {
             levelIndicator.textContent = `Level ${this.currentLevel}`;
         }
-
         // Clean up existing enemies
         this.enemies.forEach(enemy => {
             if (enemy.animationInterval) {
@@ -3276,12 +2176,19 @@ export class Game {
             }
         });
         this.enemies = []; // Clear the enemies array
-
+        // Set background for each level
+        const playfield = document.querySelector('.playfield');
+        if (playfield) {
+            if (this.currentLevel === 18) {
+                runLevel18(this);
+                return;
+            }
+            // ... existing background logic for other levels ...
+        }
         // Re-initialize the game for the new level
         this.initializeGame();
-
         // Run-in animation for mage/warrior after player element is created
-        if ((this.playerClass === 'mage' || this.playerClass === 'warrior') && this.currentLevel !== 7) {
+        if ((this.playerClass === 'mage' || this.playerClass === 'warrior') && this.currentLevel !== 7 && this.currentLevel !== 17) {
             setTimeout(() => {
                 const playerElement = document.querySelector('.player-character');
                 if (playerElement) {
@@ -3314,162 +2221,6 @@ export class Game {
                 }
             }, 50); // Ensure DOM is ready
         }
-
-        // Set playfield background based on level
-        const playfield = document.querySelector('.playfield');
-        if (playfield) {
-            if (this.currentLevel === 1) {
-                playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 2) {
-                playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 3) {
-                playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 4) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 5) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 6) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 7) {
-                playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 8) {
-                playfield.style.backgroundImage = "url('./assets/Images/ftown.png')";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-            } else if (this.currentLevel === 9) {
-                playfield.style.backgroundImage = "url('./assets/Images/level9.png')";
-                playfield.style.backgroundSize = 'cover';
-                playfield.style.backgroundPosition = '';
-                playfield.style.backgroundRepeat = '';
-            } else if (this.currentLevel === 10) {
-                playfield.style.backgroundImage = "url('./assets/Images/innnight.png')";
-                playfield.style.backgroundSize = 'cover';
-                playfield.style.backgroundPosition = 'center';
-                playfield.style.backgroundRepeat = 'no-repeat';
-            } else {
-                playfield.style.backgroundImage = "";
-                playfield.style.backgroundSize = '';
-                playfield.style.backgroundPosition = '';
-                playfield.style.backgroundRepeat = '';
-            }
-        }
-
-        // If level 10 (inn), ensure no enemies
-        if (this.currentLevel === 10) {
-            this.enemies = [];
-            const enemySide = document.querySelector('.enemy-side');
-            if (enemySide) {
-                while (enemySide.firstChild) {
-                    enemySide.removeChild(enemySide.firstChild);
-                }
-            }
-            // Remove any existing inn/town door boxes
-            document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
-            // Create Inn door box
-            const innBox = document.createElement('div');
-            innBox.className = 'inn-door-box interactable-rect';
-            innBox.style.position = 'absolute';
-            innBox.style.left = '28.5%';
-            innBox.style.top = '70%';
-            innBox.style.width = '60px';
-            innBox.style.height = '150px';
-            innBox.style.background = 'rgba(80, 200, 255, 0.25)';
-            innBox.style.border = '2px solid #39ff14';
-            innBox.style.borderRadius = '12px';
-            innBox.style.cursor = 'pointer';
-            innBox.style.zIndex = '3000';
-            innBox.title = 'Inn';
-            innBox.style.display = 'flex';
-            innBox.style.alignItems = 'center';
-            innBox.style.justifyContent = 'center';
-            innBox.style.fontSize = '2em';
-            innBox.style.color = '#fff';
-            innBox.style.fontWeight = 'bold';
-            innBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-            innBox.textContent = 'Inn';
-            innBox.addEventListener('mouseenter', () => {
-                innBox.style.background = 'rgba(80, 255, 180, 0.35)';
-                innBox.style.borderColor = '#fff';
-                innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
-            });
-            innBox.addEventListener('mouseleave', () => {
-                innBox.style.background = 'rgba(80, 200, 255, 0.25)';
-                innBox.style.borderColor = '#39ff14';
-                innBox.style.cursor = 'pointer';
-            });
-            innBox.addEventListener('click', () => {
-                // Optionally show a message or do nothing
-                alert('You are already in the Inn!');
-            });
-            // Create Back to Town door box
-            const backBox = document.createElement('div');
-            backBox.className = 'inn-door-box interactable-rect';
-            backBox.style.position = 'absolute';
-            backBox.style.left = '60%';
-            backBox.style.top = '60%';
-            backBox.style.width = '300px';
-            backBox.style.height = '180px';
-            backBox.style.background = 'rgba(80, 200, 255, 0.25)';
-            backBox.style.border = '2px solid #39ff14';
-            backBox.style.borderRadius = '12px';
-            backBox.style.cursor = 'pointer';
-            backBox.style.zIndex = '3000';
-            backBox.title = 'Back to Town';
-            backBox.style.display = 'flex';
-            backBox.style.alignItems = 'center';
-            backBox.style.justifyContent = 'center';
-            backBox.style.fontSize = '2em';
-            backBox.style.color = '#fff';
-            backBox.style.fontWeight = 'bold';
-            backBox.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-            backBox.textContent = 'Back to Town';
-            backBox.addEventListener('mouseenter', () => {
-                backBox.style.background = 'rgba(80, 255, 180, 0.35)';
-                backBox.style.borderColor = '#fff';
-                backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
-            });
-            backBox.addEventListener('mouseleave', () => {
-                backBox.style.background = 'rgba(80, 200, 255, 0.25)';
-                backBox.style.borderColor = '#39ff14';
-            });
-            backBox.addEventListener('click', () => {
-                this.previousLevel = 10;
-                this.currentLevel = 9;
-                this.startNextLevel();
-            });
-            // Add to playfield
-            const playfield = document.querySelector('.playfield');
-            if (playfield) {
-                playfield.appendChild(innBox);
-                playfield.appendChild(backBox);
-            } else {
-                document.body.appendChild(innBox);
-                document.body.appendChild(backBox);
-            }
-            // Set initial visibility like other doors
-            const visible = this.interactableRectsVisible;
-            innBox.style.opacity = visible ? '1' : '0';
-            innBox.style.pointerEvents = 'auto';
-            innBox.style.transition = 'opacity 0.3s';
-            backBox.style.opacity = visible ? '1' : '0';
-            backBox.style.pointerEvents = 'auto';
-            backBox.style.transition = 'opacity 0.3s';
-        }
-
         // Reset player's turn after all enemies are spawned
         setTimeout(() => {
             this.isLevelTransitioning = false;
@@ -3480,68 +2231,9 @@ export class Game {
                 gameScene.style.pointerEvents = 'auto';
             }
         }, this.currentLevel * 800 + 1000);
-
         // Play forestnar.mp3 narration when reaching level 5
         if (this.currentLevel === 5) {
-            if (this.playerClass === 'mage') {
-                this.soundManager.playSound('forestnar');
-            } else if (this.playerClass === 'warrior') {
-                this.soundManager.playSound('warforest');
-            }
-
-            // Stop previous level music
-            if (this.levelMusic) {
-                this.levelMusic.pause();
-                this.levelMusic.currentTime = 0;
-            }
-            // Start forestmusic.mp3 as new background music
-            this.levelMusic = new Audio('./assets/Audio/forestmusic.mp3');
-            this.levelMusic.loop = true;
-            this.levelMusic.volume = 0;
-            this.levelMusic.play().then(() => {
-                // Fade in music
-                const targetVolume = this.musicVolume || 0.5;
-                const fadeIn = setInterval(() => {
-                    if (this.levelMusic.volume < targetVolume - 0.05) {
-                        this.levelMusic.volume += 0.05;
-                    } else {
-                        this.levelMusic.volume = targetVolume;
-                        clearInterval(fadeIn);
-                    }
-                }, 100);
-            }).catch(error => {
-                console.log('Autoplay prevented:', error);
-                const startMusic = () => {
-                    this.levelMusic.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            });
-
-            // Show 'Continue Deeper' button after narration finishes
-            const forestAudio = this.playerClass === 'mage' ? this.soundManager.sounds.get('forestnar') : this.soundManager.sounds.get('warforest');
-            const showContinue = () => {
-                this.addContinueDeeperButton();
-                // Remove click listener if present
-                const playfield = document.querySelector('.playfield');
-                if (playfield) playfield.removeEventListener('click', skipNarration);
-            };
-            const skipNarration = () => {
-                if (forestAudio) {
-                    forestAudio.pause();
-                    forestAudio.currentTime = 0;
-                }
-                showContinue();
-            };
-            if (forestAudio) {
-                forestAudio.onended = showContinue;
-                // Allow skipping by clicking the playfield
-                const playfield = document.querySelector('.playfield');
-                if (playfield) playfield.addEventListener('click', skipNarration);
-            } else {
-                // Fallback: show after 10 seconds if audio not found
-                setTimeout(showContinue, 10000);
-            }
+            // (Removed duplicate narration and music logic; now handled by LevelManager)
         }
         // Play forestexit.mp3 when reaching level 8
         if (this.currentLevel === 8) {
@@ -3578,19 +2270,10 @@ export class Game {
             });
             // Debug log for narration
             console.log('[LEVEL 9] previousLevel:', this.previousLevel, 'currentLevel:', this.currentLevel);
-            // Play townnar.mp3 narration (once, not looping) ONLY if not coming from level 10
-            if (this.previousLevel !== 10) {
-                const narration = new Audio('./assets/Audio/townnar.mp3');
-                narration.volume = this.musicVolume || 0.5;
-                narration.play().catch(error => {
-                    console.log('Autoplay prevented:', error);
-                    const startNarration = () => {
-                        narration.play();
-                        document.removeEventListener('click', startNarration);
-                    };
-                    document.addEventListener('click', startNarration);
-                });
-            }
+        }
+        // Play narration when reaching level 17
+        if (this.currentLevel === 17) {
+            this.showLevel17Narration();
         }
     }
 
@@ -3954,7 +2637,7 @@ export class Game {
                     }
                     
                     // Show level transition
-                    this.showLevelTransition();
+                    this.levelManager.handleLevelTransition();
                 }, 4000);
             }
         }, 1000); // Wait 1 second before player starts following
@@ -4043,12 +2726,20 @@ export class Game {
             rect1.style.cursor = 'pointer';
         });
         rect1.addEventListener('click', () => {
-            // Play closed1.mp3, closed2.mp3, or closed3.mp3 randomly, avoiding repeats
-            const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
-            if (this.soundManager && this.soundManager.playSound) {
-                this.soundManager.playSound(soundId);
+            // If this is the first click, play a random closed sound
+            if (!this.box1Clicked) {
+                const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
+                if (this.soundManager && this.soundManager.playSound) {
+                    this.soundManager.playSound(soundId);
+                }
+                this.lastClosedSound = soundId;
+                this.box1Clicked = true;
+            } else {
+                // On subsequent clicks, only play closed3.mp3
+                if (this.soundManager && this.soundManager.playSound) {
+                    this.soundManager.playSound('closed3');
+                }
             }
-            this.lastClosedSound = soundId;
             console.log('Interactable rectangle 1 clicked!');
             // Future: open shop, quest, etc.
         });
@@ -4090,12 +2781,20 @@ export class Game {
             rect2.style.cursor = 'pointer';
         });
         rect2.addEventListener('click', () => {
-            // Play closed1.mp3, closed2.mp3, or closed3.mp3 randomly, avoiding repeats
-            const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
-            if (this.soundManager && this.soundManager.playSound) {
-                this.soundManager.playSound(soundId);
+            // If this is the first click, play a random closed sound
+            if (!this.box2Clicked) {
+                const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
+                if (this.soundManager && this.soundManager.playSound) {
+                    this.soundManager.playSound(soundId);
+                }
+                this.lastClosedSound = soundId;
+                this.box2Clicked = true;
+            } else {
+                // On subsequent clicks, only play closed3.mp3
+                if (this.soundManager && this.soundManager.playSound) {
+                    this.soundManager.playSound('closed3');
+                }
             }
-            this.lastClosedSound = soundId;
             console.log('Interactable rectangle 2 clicked!');
             // Future: open shop, quest, etc.
         });
@@ -4137,12 +2836,20 @@ export class Game {
             rect3.style.cursor = 'pointer';
         });
         rect3.addEventListener('click', () => {
-            // Play closed1.mp3, closed2.mp3, or closed3.mp3 randomly, avoiding repeats
-            const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
-            if (this.soundManager && this.soundManager.playSound) {
-                this.soundManager.playSound(soundId);
+            // If this is the first click, play a random closed sound
+            if (!this.box3Clicked) {
+                const soundId = pickNonRepeatingClosedSound(this.lastClosedSound);
+                if (this.soundManager && this.soundManager.playSound) {
+                    this.soundManager.playSound(soundId);
+                }
+                this.lastClosedSound = soundId;
+                this.box3Clicked = true;
+            } else {
+                // On subsequent clicks, only play closed3.mp3
+                if (this.soundManager && this.soundManager.playSound) {
+                    this.soundManager.playSound('closed3');
+                }
             }
-            this.lastClosedSound = soundId;
             console.log('Interactable rectangle 3 clicked!');
             // Future: open shop, quest, etc.
         });
@@ -4233,8 +2940,150 @@ export class Game {
             rect.style.pointerEvents = 'auto'; // Always interactable
         });
     }
+
+    // Add this method to the Game class:
+    runTypewriterEffect(target, text, onComplete) {
+        let i = 0;
+        const type = () => {
+            if (i <= text.length) {
+                target.textContent = text.slice(0, i);
+                let delay = 55;
+                const prevChar = text[i - 1];
+                if (prevChar === '.' || prevChar === '!' || prevChar === '?') {
+                    delay = 400;
+                }
+                i++;
+                this._typewriterTimeout = setTimeout(type, delay);
+            } else if (onComplete) {
+                onComplete();
+            }
+        };
+        type();
+        // Track timeout for cleanup
+        if (!this.typewriterTimeouts) this.typewriterTimeouts = [];
+        this.typewriterTimeouts.push(() => clearTimeout(this._typewriterTimeout));
+    }
+
+    showLevel17Narration() {
+        // Remove any existing narration box
+        const existingBox = document.querySelector('.level17-narration');
+        if (existingBox) existingBox.remove();
+        const box = document.createElement('div');
+        box.className = 'level17-narration';
+        box.style.position = 'fixed';
+        box.style.top = '60px';
+        box.style.left = '62%'; // move right
+        box.style.transform = 'translateX(-40%)'; // less leftward shift
+        box.style.background = 'rgba(30,30,30,0.97)';
+        box.style.border = '2.5px solid #39ff14';
+        box.style.borderRadius = '14px';
+        box.style.padding = '18px 18px 16px 18px';
+        box.style.color = '#b6ffb6';
+        box.style.fontFamily = 'Cinzel, Times New Roman, serif';
+        box.style.fontSize = '1.08em';
+        box.style.zIndex = '4000';
+        box.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.8)';
+        box.style.maxWidth = '410px';
+        box.style.textAlign = 'center';
+        box.innerHTML = `
+            <div style="margin-bottom: 12px; font-size: 1.1em; color: #39ff14;">Alchemist</div>
+            <div class="typewriter-narration" style="margin-bottom: 12px; min-height: 80px;"></div>
+            <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+        `;
+        const btn = box.querySelector('button');
+        btn.onclick = () => {
+            box.remove();
+            this.showLevel17BuyButton();
+        };
+        document.body.appendChild(box);
+        const text = `You've come to the right place, traveler. Out there, steel and spells might keep you alive—but in here? It's knowledge and a little alchemical assistance.`;
+        const target = box.querySelector('.typewriter-narration');
+        let finished = false;
+        let timeoutId = null;
+        const typewriter = (i = 0) => {
+            if (finished) return;
+            if (i <= text.length) {
+                target.textContent = text.slice(0, i);
+                let delay = 55;
+                const prevChar = text[i - 1];
+                if (prevChar === '.' || prevChar === '!' || prevChar === '?') {
+                    delay = 400;
+                }
+                timeoutId = setTimeout(() => typewriter(i + 1), delay);
+            } else {
+                finished = true;
+                btn.style.display = 'inline-block';
+            }
+        };
+        typewriter();
+        // Allow click to finish instantly
+        box.onclick = () => {
+            if (!finished) {
+                finished = true;
+                clearTimeout(timeoutId);
+                target.textContent = text;
+                btn.style.display = 'inline-block';
+            }
+        };
+    }
+
+    showLevel17BuyButton() {
+        // Remove any existing buy button
+        const existingBtn = document.querySelector('.level17-buy-btn');
+        if (existingBtn) existingBtn.remove();
+        // Only show if on level 17
+        if (this.currentLevel !== 17) return;
+        const btn = document.createElement('button');
+        btn.className = 'level17-buy-btn';
+        btn.textContent = 'Buy Potions';
+        btn.style.position = 'fixed';
+        btn.style.top = '160px';
+        btn.style.left = '62%';
+        btn.style.transform = 'translateX(-40%)';
+        btn.style.padding = '14px 44px';
+        btn.style.fontSize = '1.2em';
+        btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+        btn.style.color = '#b6ffb6';
+        btn.style.border = '2px solid #39ff14';
+        btn.style.borderRadius = '12px';
+        btn.style.cursor = 'pointer';
+        btn.style.fontFamily = 'Cinzel, Times New Roman, serif';
+        btn.style.zIndex = '4000';
+        btn.style.boxShadow = '0 0 18px 2px #39ff1466, 0 2px 12px rgba(0,0,0,0.7)';
+        btn.onclick = () => {
+            btn.remove();
+            // Example items for sale
+            const itemsForSale = [
+                { name: 'Health Potion', icon: './assets/Images/healthpotion.png', price: 10, type: 'healthpotion' },
+                { name: 'Mana Potion', icon: './assets/Images/manapotion.png', price: 12, type: 'manapotion' }
+            ];
+            // Example player inventory: show all potions in backpack
+            const playerInventory = [];
+            for (let i = 4; i < 16; i++) {
+                const item = this.backpack.items[i];
+                if (item && item.type) {
+                    if (item.type === 'health') {
+                        playerInventory.push({ name: 'Health Potion', icon: './assets/Images/healthpotion.png', price: 5, type: 'healthpotion', slot: i });
+                    } else if (item.type === 'mana') {
+                        playerInventory.push({ name: 'Mana Potion', icon: './assets/Images/manapotion.png', price: 6, type: 'manapotion', slot: i });
+                    }
+                }
+            }
+            this.store.open(itemsForSale, playerInventory);
+            // Patch: re-show the button after store closes
+            const origClose = this.store.close.bind(this.store);
+            this.store.close = () => {
+                origClose();
+                setTimeout(() => this.showLevel17BuyButton(), 100);
+            };
+        };
+        document.body.appendChild(btn);
+    }
 }
 
+// =========================
+// SECTION: Game Class
+// =========================
 // Start the game when the page loads
 window.addEventListener('load', async () => {
     try {
@@ -4325,6 +3174,8 @@ if (import.meta.hot) {
                 newGame.initialize(newGame.playerClass, newGame.playerDeck);
                 // Re-add backpack icon for HMR
                 newGame.backpack.initialize();
+                // Force re-initialize the current level to set background and scene
+                newGame.startNextLevel();
             }
         }
     });

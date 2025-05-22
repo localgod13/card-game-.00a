@@ -354,7 +354,7 @@ export class DebugMenu {
         levelSelectorDiv.appendChild(levelLabel);
         const levelSelect = document.createElement('select');
         levelSelect.className = '';
-        for (let i = 1; i <= this.game.maxLevel; i++) {
+        for (let i = 1; i <= 17; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -384,7 +384,8 @@ export class DebugMenu {
                     { id: 'show-coordinates', label: 'Show Coordinates', icon: '📍' },
                     { id: 'kill-player', label: 'Kill Player', icon: '💀', style: 'background-color: #ff4444' },
                     { id: 'skip-level', label: 'Skip Level', icon: '⏭️', style: 'background-color: #4CAF50; color: white;' },
-                    { id: 'toggle-inventory-grid', label: 'Show Inventory Grid', icon: '🎒' }
+                    { id: 'toggle-inventory-grid', label: 'Show Inventory Grid', icon: '🎒' },
+                    { id: 'give-gold', label: 'Give Gold (+25)', icon: '💰' }
                 ]
             },
             {
@@ -600,6 +601,12 @@ export class DebugMenu {
             case 'max-resources':
                 this.game.playerResource = this.game.maxResource;
                 this.game.updateResourceBar();
+                break;
+            case 'give-gold':
+                if (this.game) {
+                    this.game.playerGold += 25;
+                    this.game.updateGoldUI();
+                }
                 break;
             case 'kill-enemy':
                 const enemyId = parseInt(cardId);

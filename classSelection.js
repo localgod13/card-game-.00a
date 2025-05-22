@@ -549,7 +549,9 @@ export class ClassSelection {
             // Fade out the intro container
             introContainer.style.opacity = '0';
             setTimeout(() => {
-                document.body.removeChild(introContainer);
+                if (introContainer && introContainer.parentNode === document.body) {
+                    document.body.removeChild(introContainer);
+                }
                 this.initializeGame(level1Music); // Pass the music to the game
             }, 1000);
         };
@@ -559,7 +561,9 @@ export class ClassSelection {
             // Fade out the intro container
             introContainer.style.opacity = '0';
             setTimeout(() => {
-                document.body.removeChild(introContainer);
+                if (introContainer && introContainer.parentNode === document.body) {
+                    document.body.removeChild(introContainer);
+                }
                 this.initializeGame(level1Music); // Pass the music to the game
             }, 1000);
         };
@@ -762,7 +766,9 @@ export class ClassSelection {
             // Fade out the intro container
             introContainer.style.opacity = '0';
             setTimeout(() => {
-                document.body.removeChild(introContainer);
+                if (introContainer && introContainer.parentNode === document.body) {
+                    document.body.removeChild(introContainer);
+                }
                 this.initializeGame(level1Music); // Pass the music to the game
             }, 1000);
         };
@@ -772,7 +778,9 @@ export class ClassSelection {
             // Fade out the intro container
             introContainer.style.opacity = '0';
             setTimeout(() => {
-                document.body.removeChild(introContainer);
+                if (introContainer && introContainer.parentNode === document.body) {
+                    document.body.removeChild(introContainer);
+                }
                 this.initializeGame(level1Music); // Pass the music to the game
             }, 1000);
         };

@@ -1,5 +1,9 @@
 import { Potion } from './potion.js';
 import { Scroll } from './scroll.js';
+import { ScrollOfEchoingFury } from './scrolls.js';
+import { ScrollOfUnbrokenWard } from './scrolls.js';
+import { ScrollOfTemporalGrace } from './scrolls.js';
+import { ScrollOfArcaneDebt } from './scrolls.js';
 
 export class Backpack {
     constructor(game) {
@@ -11,12 +15,11 @@ export class Backpack {
     }
 
     initialize() {
-        // Add a default base scroll to each slot in the top row if empty
-        for (let i = 0; i < 4; i++) {
-            if (!this.items[i]) {
-                this.items[i] = new Scroll('base');
-            }
-        }
+        // Add one of each new scroll type to the top row
+        this.items[0] = new ScrollOfEchoingFury();
+        this.items[1] = new ScrollOfUnbrokenWard();
+        this.items[2] = new ScrollOfTemporalGrace();
+        this.items[3] = new ScrollOfArcaneDebt();
         this.addBackpackIcon();
     }
 
@@ -39,7 +42,7 @@ export class Backpack {
         backpackContainer.style.height = '200px';
         backpackContainer.style.zIndex = '10';
         backpackContainer.style.pointerEvents = 'auto';
-        backpackContainer.style.overflow = 'hidden'; // Clip grid to container
+        backpackContainer.style.overflow = 'hidden';
 
         // Create the backpack image element
         const backpack = document.createElement('img');
@@ -89,6 +92,7 @@ export class Backpack {
         // Store a reference to the container for later use
         this.backpackContainer = backpackContainer;
 
+        // Add to discard pile instead of document body
         discardPile.parentNode.appendChild(backpackContainer);
 
         // Store references
@@ -128,115 +132,38 @@ export class Backpack {
 
     renderItems() {
         if (!this.itemGrid) return;
-
+        this.itemGrid.innerHTML = ''; // Clear existing items
         for (let i = 0; i < 16; i++) {
-            const slot = this.itemGrid.children[i];
-            slot.innerHTML = '';
-            slot.draggable = false;
-            slot.ondragover = null;
-            slot.ondrop = null;
-            slot.ondragenter = null;
-            slot.ondragleave = null;
-            slot.ondragstart = null;
-            slot.ondragend = null;
+            const slot = document.createElement('div');
+            slot.className = 'backpack-item-slot';
+            slot.dataset.slot = i;
+            slot.style.position = 'relative';
+            slot.style.width = '100%';
+            slot.style.height = '100%';
+            slot.style.pointerEvents = 'auto';
+            slot.style.cursor = 'pointer';
             
-            if (this.items[i] instanceof Potion) {
-                const potionImg = document.createElement('img');
-                potionImg.src = this.items[i].imagePath;
-                potionImg.alt = this.items[i].getDisplayName();
-                potionImg.style.width = '100%';
-                potionImg.style.height = '100%';
-                potionImg.style.objectFit = 'contain';
-                potionImg.style.pointerEvents = 'auto';
-                potionImg.draggable = true;
-                potionImg.dataset.slot = i;
-
-                // Drag events
-                potionImg.ondragstart = (e) => {
-                    e.dataTransfer.setData('text/plain', i);
-                    potionImg.classList.add('dragging');
-                };
-                potionImg.ondragend = (e) => {
-                    potionImg.classList.remove('dragging');
-                };
-
-                // Add click handler to use potion
-                potionImg.addEventListener('click', (event) => {
-                    // Prevent using potion if dragging
-                    if (event.detail === 0) return;
-                    this.items[i].use(this.game);
-                    this.removeItem(i);
-                });
-                slot.appendChild(potionImg);
-            } else if (this.items[i] instanceof Scroll) {
-                const scrollImg = document.createElement('img');
-                scrollImg.src = this.items[i].imagePath;
-                scrollImg.alt = this.items[i].getDisplayName();
-                if (i < 4) { // Top row: make scroll image larger
-                    scrollImg.style.position = 'static';
-                    scrollImg.style.width = '100%';
-                    scrollImg.style.height = '100%';
-                    scrollImg.style.zIndex = '2';
-                    scrollImg.style.objectFit = 'cover';
-                } else {
-                    scrollImg.style.width = '100%';
-                    scrollImg.style.height = '100%';
-                    scrollImg.style.objectFit = 'cover';
-                }
-                scrollImg.style.padding = '0';
-                scrollImg.style.margin = '0';
-                scrollImg.style.pointerEvents = 'auto';
-                scrollImg.draggable = true;
-                scrollImg.dataset.slot = i;
-
-                // Drag events
-                scrollImg.ondragstart = (e) => {
-                    e.dataTransfer.setData('text/plain', i);
-                    scrollImg.classList.add('dragging');
-                };
-                scrollImg.ondragend = (e) => {
-                    scrollImg.classList.remove('dragging');
-                };
-
-                // Add click handler to use scroll
-                scrollImg.addEventListener('click', (event) => {
-                    if (event.detail === 0) return;
-                    this.items[i].use(this.game);
-                    this.removeItem(i);
-                });
-                // Make slot relative and allow overflow for top row
-                if (i < 4) {
-                    slot.style.position = 'relative';
-                    slot.style.overflow = 'visible';
-                }
-                slot.appendChild(scrollImg);
-                // Ensure slot fills grid cell
-                slot.style.padding = '0';
-                slot.style.margin = '0';
-                slot.style.border = 'none';
-                slot.style.width = '100%';
-                slot.style.height = '100%';
-            }
-
-            // Allow dropping on any slot, but enforce scrolls only in top row and others in bottom rows
+            // Add drag and drop handlers for the slot
             slot.ondragover = (e) => {
+                e.preventDefault();
                 const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
                 const draggedItem = this.items[fromIndex];
                 // Only allow scrolls in top row, others in bottom rows
                 if ((i < 4 && draggedItem instanceof Scroll) || (i >= 4 && !(draggedItem instanceof Scroll))) {
-                    e.preventDefault();
                     slot.classList.add('drag-over');
                 }
             };
+
             slot.ondragleave = (e) => {
                 slot.classList.remove('drag-over');
             };
+
             slot.ondrop = (e) => {
+                e.preventDefault();
                 const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
                 const draggedItem = this.items[fromIndex];
                 // Only allow scrolls in top row, others in bottom rows
                 if ((i < 4 && draggedItem instanceof Scroll) || (i >= 4 && !(draggedItem instanceof Scroll))) {
-                    e.preventDefault();
                     slot.classList.remove('drag-over');
                     if (fromIndex !== i) {
                         // Swap or move
@@ -247,6 +174,110 @@ export class Backpack {
                     }
                 }
             };
+            
+            if (this.items[i]) {
+                if (this.items[i] instanceof Scroll) {
+                    // Use the scroll's render method to get the proper container with letter overlay
+                    this.items[i].render(slot);
+                } else if (this.items[i] instanceof Potion) {
+                    // Create container for potion
+                    const container = document.createElement('div');
+                    container.style.position = 'relative';
+                    container.style.width = '100%';
+                    container.style.height = '100%';
+                    container.style.cursor = 'pointer';
+                    
+                    // Add the potion image
+                    const potionImg = document.createElement('img');
+                    potionImg.src = this.items[i].imagePath;
+                    potionImg.alt = this.items[i].getDisplayName();
+                    potionImg.style.width = '100%';
+                    potionImg.style.height = '100%';
+                    potionImg.style.objectFit = 'cover';
+                    potionImg.draggable = true;
+                    potionImg.dataset.slot = i;
+                    container.appendChild(potionImg);
+
+                    // Add tooltip container
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'potion-tooltip';
+                    tooltip.style.position = 'absolute';
+                    tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+                    tooltip.style.color = 'white';
+                    tooltip.style.padding = '8px 12px';
+                    tooltip.style.borderRadius = '4px';
+                    tooltip.style.fontSize = '14px';
+                    tooltip.style.maxWidth = '200px';
+                    tooltip.style.zIndex = '1000';
+                    tooltip.style.display = 'none';
+                    tooltip.style.pointerEvents = 'none';
+                    tooltip.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.3)';
+                    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+
+                    // Add tooltip content
+                    const name = document.createElement('div');
+                    name.style.fontWeight = 'bold';
+                    name.style.marginBottom = '4px';
+                    name.style.color = '#ffd700';
+                    name.textContent = this.items[i].getDisplayName();
+                    
+                    const effect = document.createElement('div');
+                    effect.style.fontSize = '12px';
+                    effect.style.color = '#ff6b6b';
+                    effect.innerHTML = `<span style="color: #ffd700;">Effect:</span> ${this.items[i].effect || 'No effect'}`;
+
+                    tooltip.appendChild(name);
+                    tooltip.appendChild(effect);
+
+                    // Add hover events
+                    container.addEventListener('mouseenter', (e) => {
+                        tooltip.style.display = 'block';
+                        const rect = container.getBoundingClientRect();
+                        tooltip.style.left = `${rect.left + (rect.width / 2)}px`;
+                        tooltip.style.top = `${rect.top - tooltip.offsetHeight - 10}px`;
+                        tooltip.style.transform = 'translateX(-50%)';
+                    });
+
+                    container.addEventListener('mouseleave', () => {
+                        tooltip.style.display = 'none';
+                    });
+
+                    // Add tooltip to document body
+                    document.body.appendChild(tooltip);
+
+                    // Drag events
+                    potionImg.ondragstart = (e) => {
+                        e.dataTransfer.setData('text/plain', i);
+                        container.classList.add('dragging');
+                        tooltip.style.display = 'none';
+                    };
+                    potionImg.ondragend = (e) => {
+                        container.classList.remove('dragging');
+                    };
+
+                    // Add click handler to use potion
+                    container.addEventListener('click', (event) => {
+                        if (event.detail === 0) return;
+                        this.items[i].use(this.game);
+                        this.removeItem(i);
+                        tooltip.remove();
+                    });
+
+                    slot.appendChild(container);
+                } else {
+                    // Handle other items
+                    const itemImg = document.createElement('img');
+                    itemImg.src = this.items[i].imagePath;
+                    itemImg.alt = this.items[i].name;
+                    itemImg.style.width = '100%';
+                    itemImg.style.height = '100%';
+                    itemImg.style.objectFit = 'cover';
+                    itemImg.draggable = true;
+                    itemImg.dataset.slot = i;
+                    slot.appendChild(itemImg);
+                }
+            }
+            this.itemGrid.appendChild(slot);
         }
     }
 
@@ -262,6 +293,27 @@ export class Backpack {
     }
 
     addItem(itemType, slot) {
+        // If slot is not provided, find the first available slot
+        if (typeof slot === 'undefined') {
+            if (itemType === 'healthpotion' || itemType === 'manapotion') {
+                // Find first available slot in bottom 3 rows (4-15)
+                for (let i = 4; i < 16; i++) {
+                    if (!this.items[i]) {
+                        slot = i;
+                        break;
+                    }
+                }
+            } else if (itemType === 'basescroll' || itemType instanceof Scroll) {
+                // Find first available slot in top row (0-3)
+                for (let i = 0; i < 4; i++) {
+                    if (!this.items[i]) {
+                        slot = i;
+                        break;
+                    }
+                }
+            }
+        }
+        if (typeof slot === 'undefined') return; // No available slot
         if (slot >= 0 && slot < 16) {
             // Top row (0-3): Only allow scrolls
             if (slot >= 0 && slot < 4) {

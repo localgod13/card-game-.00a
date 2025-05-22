@@ -1,0 +1,205 @@
+// Level 18: Merchant scene (no player, no enemies)
+import { Scroll } from '../scroll.js';
+
+export function runLevel18(game) {
+    localStorage.setItem('level18_hmr_log', 'START: ' + new Date().toISOString());
+    // Remove player and enemy sides
+    const playerSide = document.querySelector('.player-side');
+    if (playerSide) playerSide.innerHTML = '';
+    const enemySide = document.querySelector('.enemy-side');
+    if (enemySide) enemySide.innerHTML = '';
+    // Remove any existing inn/town door boxes and interactable rectangles
+    document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
+    document.querySelectorAll('.interactable-rect').forEach(el => el.remove());
+    document.querySelectorAll('.innkeeper-dialogue-box').forEach(el => el.remove());
+    // Set background to smerch.png
+    const playfield = document.querySelector('.playfield');
+    if (playfield) {
+        playfield.style.backgroundImage = 'url("./assets/Images/smerch.png")';
+        playfield.style.backgroundSize = 'cover';
+        playfield.style.backgroundPosition = 'center';
+        playfield.style.backgroundRepeat = 'no-repeat';
+    }
+
+    // Add scroll shop dialogue box
+    const dialogueBox = document.createElement('div');
+    dialogueBox.className = 'scroll-shop-dialogue';
+    dialogueBox.style.position = 'fixed';
+    dialogueBox.style.top = '60px';
+    dialogueBox.style.left = '62%';
+    dialogueBox.style.transform = 'translateX(-40%)';
+    dialogueBox.style.background = 'rgba(30,30,30,0.97)';
+    dialogueBox.style.border = '2.5px solid #39ff14';
+    dialogueBox.style.borderRadius = '14px';
+    dialogueBox.style.padding = '18px 18px 16px 18px';
+    dialogueBox.style.color = '#b6ffb6';
+    dialogueBox.style.fontFamily = 'Cinzel, Times New Roman, serif';
+    dialogueBox.style.fontSize = '1.08em';
+    dialogueBox.style.zIndex = '4000';
+    dialogueBox.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.8)';
+    dialogueBox.style.maxWidth = '410px';
+    dialogueBox.style.textAlign = 'center';
+    dialogueBox.innerHTML = `
+        <div style="margin-bottom: 12px; font-size: 1.1em; color: #39ff14;">Scroll Merchant</div>
+        <div class="typewriter-narration" style="margin-bottom: 12px; min-height: 80px;"></div>
+        <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+    `;
+    const btn = dialogueBox.querySelector('button');
+    btn.onclick = () => {
+        dialogueBox.remove();
+        // Add Buy Scrolls button
+        const buyBtn = document.createElement('button');
+        buyBtn.className = 'scroll-shop-buy-btn';
+        buyBtn.textContent = 'Buy Scrolls';
+        buyBtn.style.position = 'fixed';
+        buyBtn.style.top = '60px';
+        buyBtn.style.left = '62%';
+        buyBtn.style.transform = 'translateX(-40%)';
+        buyBtn.style.padding = '18px 36px';
+        buyBtn.style.fontSize = '1.3em';
+        buyBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+        buyBtn.style.color = '#b6ffb6';
+        buyBtn.style.border = '2px solid #39ff14';
+        buyBtn.style.borderRadius = '16px';
+        buyBtn.style.cursor = 'pointer';
+        buyBtn.style.zIndex = '4000';
+        buyBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+        buyBtn.style.fontFamily = 'Cinzel, Times New Roman, serif';
+        buyBtn.style.letterSpacing = '1px';
+        buyBtn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        buyBtn.addEventListener('mouseenter', () => {
+            buyBtn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+            buyBtn.style.background = 'linear-gradient(135deg, #2a3a2a 60%, #3e5d3e 100%)';
+            buyBtn.style.color = '#fff6ea';
+        });
+        buyBtn.addEventListener('mouseleave', () => {
+            buyBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+            buyBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+            buyBtn.style.color = '#b6ffb6';
+        });
+        buyBtn.addEventListener('click', () => {
+            buyBtn.remove();
+            // Open scroll shop
+            const itemsForSale = [
+                { name: 'Scroll of Echoing Fury', icon: './assets/Images/bpackscroll.png', price: 25, type: 'echoingFury' },
+                { name: 'Scroll of Unbroken Ward', icon: './assets/Images/bpackscroll.png', price: 30, type: 'unbrokenWard' },
+                { name: 'Scroll of Temporal Grace', icon: './assets/Images/bpackscroll.png', price: 35, type: 'temporalGrace' },
+                { name: 'Scroll of Arcane Debt', icon: './assets/Images/bpackscroll.png', price: 20, type: 'arcaneDebt' }
+            ];
+            // Get player's inventory
+            const playerInventory = [];
+            for (let i = 0; i < 16; i++) {
+                const item = game.backpack.items[i];
+                if (item) {
+                    if (item instanceof Scroll) {
+                        playerInventory.push({
+                            name: item.getDisplayName(),
+                            icon: item.imagePath,
+                            price: Math.floor(item.price * 0.5), // Sell for half price
+                            type: item.type,
+                            slot: i
+                        });
+                    } else if (item.type === 'health') {
+                        playerInventory.push({
+                            name: 'Health Potion',
+                            icon: './assets/Images/healthpotion.png',
+                            price: 5,
+                            type: 'healthpotion',
+                            slot: i
+                        });
+                    } else if (item.type === 'mana') {
+                        playerInventory.push({
+                            name: 'Mana Potion',
+                            icon: './assets/Images/manapotion.png',
+                            price: 6,
+                            type: 'manapotion',
+                            slot: i
+                        });
+                    }
+                }
+            }
+            game.store.open(itemsForSale, playerInventory);
+            // Re-show the button after store closes
+            const origClose = game.store.close.bind(game.store);
+            game.store.close = () => {
+                origClose();
+                setTimeout(() => {
+                    document.body.appendChild(buyBtn);
+                }, 100);
+            };
+        });
+        document.body.appendChild(buyBtn);
+    };
+    document.body.appendChild(dialogueBox);
+    const text = "Ink and incantation await. Browse carefully — some of these scrolls bite back.";
+    const target = dialogueBox.querySelector('.typewriter-narration');
+    let finished = false;
+    let timeoutId = null;
+    const typewriter = (i = 0) => {
+        if (finished) return;
+        if (i <= text.length) {
+            target.textContent = text.slice(0, i);
+            let delay = 55;
+            const prevChar = text[i - 1];
+            if (prevChar === '.' || prevChar === '!' || prevChar === '?') {
+                delay = 400;
+            }
+            timeoutId = setTimeout(() => typewriter(i + 1), delay);
+        } else {
+            finished = true;
+            btn.style.display = 'inline-block';
+        }
+    };
+    typewriter();
+    // Allow click to finish instantly
+    dialogueBox.onclick = () => {
+        if (!finished) {
+            finished = true;
+            clearTimeout(timeoutId);
+            target.textContent = text;
+            btn.style.display = 'inline-block';
+        }
+    };
+
+    // Remove any existing back button to prevent duplicates
+    const oldBackBtn = playfield ? playfield.querySelector('.merchant-back-btn') : null;
+    if (oldBackBtn) oldBackBtn.remove();
+    // Add 'Back to Town' button in the bottom left corner
+    const backBtn = document.createElement('button');
+    backBtn.className = 'merchant-back-btn';
+    backBtn.textContent = 'Back to Town';
+    backBtn.style.position = 'absolute';
+    backBtn.style.left = '32px';
+    backBtn.style.bottom = '32px';
+    backBtn.style.padding = '18px 36px';
+    backBtn.style.fontSize = '1.3em';
+    backBtn.style.background = 'linear-gradient(135deg, #2a1a1a 60%, #4d2e2e 100%)';
+    backBtn.style.color = '#ffe6b6';
+    backBtn.style.border = '2px solid #ffb639';
+    backBtn.style.borderRadius = '16px';
+    backBtn.style.cursor = 'pointer';
+    backBtn.style.zIndex = '4000';
+    backBtn.style.boxShadow = '0 0 24px 4px #ffb63966, 0 4px 24px rgba(0,0,0,0.7)';
+    backBtn.style.fontFamily = 'Cinzel, Times New Roman, serif';
+    backBtn.style.letterSpacing = '1px';
+    backBtn.style.textShadow = '0 0 8px #ffb639, 0 2px 2px #000';
+    backBtn.addEventListener('mouseenter', () => {
+        backBtn.style.boxShadow = '0 0 32px 8px #ffb639cc, 0 4px 32px rgba(0,0,0,0.8)';
+        backBtn.style.background = 'linear-gradient(135deg, #332222 60%, #6d3e3e 100%)';
+        backBtn.style.color = '#fff6ea';
+    });
+    backBtn.addEventListener('mouseleave', () => {
+        backBtn.style.boxShadow = '0 0 24px 4px #ffb63966, 0 4px 24px rgba(0,0,0,0.7)';
+        backBtn.style.background = 'linear-gradient(135deg, #2a1a1a 60%, #4d2e2e 100%)';
+        backBtn.style.color = '#ffe6b6';
+    });
+    backBtn.addEventListener('click', () => {
+        backBtn.remove();
+        game.previousLevel = 18;
+        game.currentLevel = 16;
+        game.startNextLevel();
+    });
+    if (playfield) playfield.appendChild(backBtn);
+    // No player character, no enemies, no UI elements
+    localStorage.setItem('level18_hmr_log', 'END: ' + new Date().toISOString());
+} 
