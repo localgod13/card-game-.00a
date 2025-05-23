@@ -116,9 +116,16 @@ export class Store {
                 }
                 this.game.playerGold -= item.price;
                 this.game.updateGoldUI();
-                this.close();
-                // Reopen to refresh inventory
-                this.open(this.itemsForSale, this._getPlayerInventory());
+                // Only close and reopen if not on level 17 or 18
+                if (this.game.currentLevel === 17 || this.game.currentLevel === 18) {
+                    // Just refresh the store UI
+                    this.playerInventory = this._getPlayerInventory();
+                    this.render();
+                } else {
+                    this.close();
+                    // Reopen to refresh inventory
+                    this.open(this.itemsForSale, this._getPlayerInventory());
+                }
             };
             saleGrid.appendChild(cell);
         });

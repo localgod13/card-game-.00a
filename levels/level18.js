@@ -123,9 +123,59 @@ export function runLevel18(game) {
             const origClose = game.store.close.bind(game.store);
             game.store.close = () => {
                 origClose();
-                setTimeout(() => {
-                    document.body.appendChild(buyBtn);
-                }, 100);
+                // Only re-show the button if we're still on level 18
+                if (game.currentLevel === 18) {
+                    setTimeout(() => {
+                        const newBuyBtn = document.createElement('button');
+                        newBuyBtn.className = 'scroll-shop-buy-btn';
+                        newBuyBtn.textContent = 'Buy Scrolls';
+                        newBuyBtn.style.position = 'fixed';
+                        newBuyBtn.style.top = '60px';
+                        newBuyBtn.style.left = '62%';
+                        newBuyBtn.style.transform = 'translateX(-40%)';
+                        newBuyBtn.style.padding = '18px 36px';
+                        newBuyBtn.style.fontSize = '1.3em';
+                        newBuyBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+                        newBuyBtn.style.color = '#b6ffb6';
+                        newBuyBtn.style.border = '2px solid #39ff14';
+                        newBuyBtn.style.borderRadius = '16px';
+                        newBuyBtn.style.cursor = 'pointer';
+                        newBuyBtn.style.zIndex = '4000';
+                        newBuyBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+                        newBuyBtn.style.fontFamily = 'Cinzel, Times New Roman, serif';
+                        newBuyBtn.style.letterSpacing = '1px';
+                        newBuyBtn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+                        newBuyBtn.addEventListener('mouseenter', () => {
+                            newBuyBtn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+                            newBuyBtn.style.background = 'linear-gradient(135deg, #2a3a2a 60%, #3e5d3e 100%)';
+                            newBuyBtn.style.color = '#fff6ea';
+                        });
+                        newBuyBtn.addEventListener('mouseleave', () => {
+                            newBuyBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+                            newBuyBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+                            newBuyBtn.style.color = '#b6ffb6';
+                        });
+                        newBuyBtn.addEventListener('click', () => {
+                            newBuyBtn.remove();
+                            game.store.open(itemsForSale, playerInventory);
+                            // Re-show the button after store closes
+                            const origCloseInner = game.store.close.bind(game.store);
+                            game.store.close = () => {
+                                origCloseInner();
+                                if (game.currentLevel === 18) {
+                                    setTimeout(() => {
+                                        if (!document.querySelector('.scroll-shop-buy-btn')) {
+                                            document.body.appendChild(newBuyBtn);
+                                        }
+                                    }, 100);
+                                }
+                            };
+                        });
+                        if (!document.querySelector('.scroll-shop-buy-btn')) {
+                            document.body.appendChild(newBuyBtn);
+                        }
+                    }, 100);
+                }
             };
         });
         document.body.appendChild(buyBtn);
@@ -194,6 +244,9 @@ export function runLevel18(game) {
         backBtn.style.color = '#ffe6b6';
     });
     backBtn.addEventListener('click', () => {
+        // Remove the buy scrolls button if it exists
+        const buyBtn = document.querySelector('.scroll-shop-buy-btn');
+        if (buyBtn) buyBtn.remove();
         backBtn.remove();
         game.previousLevel = 18;
         game.currentLevel = 16;

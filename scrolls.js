@@ -11,10 +11,18 @@ export class ScrollOfEchoingFury extends Scroll {
                     game.playerBuffs = new Set();
                 }
                 game.playerBuffs.add('echoingFury');
-                const originalOnRoundEnd = game.onRoundEnd;
-                game.onRoundEnd = () => {
-                    game.playerBuffs.delete('echoingFury');
-                    if (originalOnRoundEnd) originalOnRoundEnd();
+                
+                // Store the original executeQueuedAttacks method
+                const originalExecuteQueuedAttacks = game.executeQueuedAttacks;
+                game.executeQueuedAttacks = async function() {
+                    // Call the original method
+                    await originalExecuteQueuedAttacks.call(this);
+                    
+                    // Remove the buff after all attacks are executed
+                    this.playerBuffs.delete('echoingFury');
+                    
+                    // Restore the original method
+                    this.executeQueuedAttacks = originalExecuteQueuedAttacks;
                 };
             }
         }, './assets/Images/bpackscroll.png');
@@ -34,6 +42,8 @@ export class ScrollOfEchoingFury extends Scroll {
         container.style.position = 'relative';
         container.style.width = '100%';
         container.style.height = '100%';
+        container.style.cursor = 'pointer';
+        container.style.pointerEvents = 'auto';
 
         // Add the scroll image
         const img = document.createElement('img');
@@ -44,6 +54,7 @@ export class ScrollOfEchoingFury extends Scroll {
         img.style.objectFit = 'cover';
         img.draggable = true;
         img.dataset.slot = element.dataset.slot;
+        img.style.pointerEvents = 'auto';
         container.appendChild(img);
 
         // Add the red "F" overlay
@@ -53,12 +64,13 @@ export class ScrollOfEchoingFury extends Scroll {
         fOverlay.style.top = '45%';
         fOverlay.style.left = '50%';
         fOverlay.style.transform = 'translate(-50%, -50%)';
-        fOverlay.style.color = '#ff0000';
+        fOverlay.style.color = '#000000';
         fOverlay.style.fontSize = '1.2em';
         fOverlay.style.fontWeight = 'bold';
-        fOverlay.style.textShadow = '0 0 3px #ff0000';
+        fOverlay.style.textShadow = '0 0 2px rgba(0, 0, 0, 0.3)';
         fOverlay.style.zIndex = '2';
         fOverlay.style.pointerEvents = 'none';
+        fOverlay.style.fontFamily = 'MedievalSharp, "Old English Text MT", fantasy';
         container.appendChild(fOverlay);
 
         // Add tooltip container
@@ -172,6 +184,8 @@ export class ScrollOfUnbrokenWard extends Scroll {
         container.style.position = 'relative';
         container.style.width = '100%';
         container.style.height = '100%';
+        container.style.cursor = 'pointer';
+        container.style.pointerEvents = 'auto';
 
         // Add the scroll image
         const img = document.createElement('img');
@@ -182,6 +196,7 @@ export class ScrollOfUnbrokenWard extends Scroll {
         img.style.objectFit = 'cover';
         img.draggable = true;
         img.dataset.slot = element.dataset.slot;
+        img.style.pointerEvents = 'auto';
         container.appendChild(img);
 
         // Add the red "W" overlay
@@ -191,12 +206,13 @@ export class ScrollOfUnbrokenWard extends Scroll {
         wOverlay.style.top = '45%';
         wOverlay.style.left = '50%';
         wOverlay.style.transform = 'translate(-50%, -50%)';
-        wOverlay.style.color = '#ff0000';
+        wOverlay.style.color = '#000000';
         wOverlay.style.fontSize = '1.2em';
         wOverlay.style.fontWeight = 'bold';
-        wOverlay.style.textShadow = '0 0 3px #ff0000';
+        wOverlay.style.textShadow = '0 0 2px rgba(0, 0, 0, 0.3)';
         wOverlay.style.zIndex = '2';
         wOverlay.style.pointerEvents = 'none';
+        wOverlay.style.fontFamily = 'MedievalSharp, "Old English Text MT", fantasy';
         container.appendChild(wOverlay);
 
         // Add tooltip container
@@ -331,6 +347,8 @@ export class ScrollOfTemporalGrace extends Scroll {
         container.style.position = 'relative';
         container.style.width = '100%';
         container.style.height = '100%';
+        container.style.cursor = 'pointer';
+        container.style.pointerEvents = 'auto';
 
         // Add the scroll image
         const img = document.createElement('img');
@@ -341,6 +359,7 @@ export class ScrollOfTemporalGrace extends Scroll {
         img.style.objectFit = 'cover';
         img.draggable = true;
         img.dataset.slot = element.dataset.slot;
+        img.style.pointerEvents = 'auto';
         container.appendChild(img);
 
         // Add the red "G" overlay
@@ -350,12 +369,13 @@ export class ScrollOfTemporalGrace extends Scroll {
         gOverlay.style.top = '45%';
         gOverlay.style.left = '50%';
         gOverlay.style.transform = 'translate(-50%, -50%)';
-        gOverlay.style.color = '#ff0000';
+        gOverlay.style.color = '#000000';
         gOverlay.style.fontSize = '1.2em';
         gOverlay.style.fontWeight = 'bold';
-        gOverlay.style.textShadow = '0 0 3px #ff0000';
+        gOverlay.style.textShadow = '0 0 2px rgba(0, 0, 0, 0.3)';
         gOverlay.style.zIndex = '2';
         gOverlay.style.pointerEvents = 'none';
+        gOverlay.style.fontFamily = 'MedievalSharp, "Old English Text MT", fantasy';
         container.appendChild(gOverlay);
 
         // Add tooltip container
@@ -644,6 +664,8 @@ export class ScrollOfArcaneDebt extends Scroll {
         container.style.position = 'relative';
         container.style.width = '100%';
         container.style.height = '100%';
+        container.style.cursor = 'pointer';
+        container.style.pointerEvents = 'auto';
 
         // Add the scroll image
         const img = document.createElement('img');
@@ -654,6 +676,7 @@ export class ScrollOfArcaneDebt extends Scroll {
         img.style.objectFit = 'cover';
         img.draggable = true;
         img.dataset.slot = element.dataset.slot;
+        img.style.pointerEvents = 'auto';
         container.appendChild(img);
 
         // Add the red "D" overlay
@@ -663,12 +686,13 @@ export class ScrollOfArcaneDebt extends Scroll {
         dOverlay.style.top = '45%';
         dOverlay.style.left = '50%';
         dOverlay.style.transform = 'translate(-50%, -50%)';
-        dOverlay.style.color = '#ff0000';
+        dOverlay.style.color = '#000000';
         dOverlay.style.fontSize = '1.2em';
         dOverlay.style.fontWeight = 'bold';
-        dOverlay.style.textShadow = '0 0 3px #ff0000';
+        dOverlay.style.textShadow = '0 0 2px rgba(0, 0, 0, 0.3)';
         dOverlay.style.zIndex = '2';
         dOverlay.style.pointerEvents = 'none';
+        dOverlay.style.fontFamily = 'MedievalSharp, "Old English Text MT", fantasy';
         container.appendChild(dOverlay);
 
         // Add tooltip container

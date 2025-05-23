@@ -442,7 +442,7 @@ export class CardManager {
             attack: 7,
             defense: 0,
             cost: 2,
-            description: 'Launch a ball of fire'
+            description: 'Single target fire projectile'
         });
 
         this.addCard({
@@ -639,188 +639,6 @@ export class CardManager {
         this.addCard({
             id: 'meteor_strike',
             name: 'Meteor Strike',
-            type: 'Magic',
-            attack: 15,
-            defense: 0,
-            cost: 5,
-            description: 'Call down a meteor from the sky'
-        });
-
-        this.addCard({
-            id: 'time_stop',
-            name: 'Time Stop',
-            type: 'Magic',
-            attack: 8,
-            defense: 8,
-            cost: 4,
-            description: 'Stop time itself'
-        });
-
-        // Ice Spells
-        this.addCard({
-            id: 'frost_nova',
-            name: 'Frost Nova',
-            type: 'Magic',
-            attack: 6,
-            defense: 4,
-            cost: 2,
-            description: 'Explosion of frost energy'
-        });
-
-        this.addCard({
-            id: 'ice_shield',
-            name: 'Ice Shield',
-            type: 'Magic',
-            attack: 0,
-            defense: 8,
-            cost: 2,
-            description: 'Protective layer of ice'
-        });
-
-        this.addCard({
-            id: 'frost_shield',
-            name: 'Frost Shield',
-            type: 'Magic',
-            attack: 0,
-            defense: 7,
-            cost: 2,
-            description: 'Shield of frost energy'
-        });
-
-        this.addCard({
-            id: 'ice_armor',
-            name: 'Ice Armor',
-            type: 'Magic',
-            attack: 0,
-            defense: 9,
-            cost: 3,
-            description: 'Armor made of solid ice'
-        });
-
-        this.addCard({
-            id: 'blizzard',
-            name: 'Blizzard',
-            type: 'Magic',
-            attack: 8,
-            defense: 0,
-            cost: 3,
-            description: 'Fierce snowstorm attack'
-        });
-
-        this.addCard({
-            id: 'frozen_heart',
-            name: 'Frozen Heart',
-            type: 'Magic',
-            attack: 0,
-            defense: 10,
-            cost: 3,
-            description: 'Heart of ice protects you'
-        });
-
-        this.addCard({
-            id: 'ice_barrier',
-            name: 'Ice Barrier',
-            type: 'Magic',
-            attack: 0,
-            defense: 12,
-            cost: 4,
-            description: 'Barrier of solid ice'
-        });
-
-        this.addCard({
-            id: 'frost_bite',
-            name: 'Frost Bite',
-            type: 'Magic',
-            attack: 7,
-            defense: 0,
-            cost: 2,
-            description: 'Biting cold attack'
-        });
-
-        this.addCard({
-            id: 'winter_wind',
-            name: 'Winter Wind',
-            type: 'Magic',
-            attack: 5,
-            defense: 3,
-            cost: 2,
-            description: 'Chilling wind attack'
-        });
-
-        this.addCard({
-            id: 'snow_globe',
-            name: 'Snow Globe',
-            type: 'Magic',
-            attack: 0,
-            defense: 11,
-            cost: 3,
-            description: 'Protective sphere of snow'
-        });
-
-        this.addCard({
-            id: 'ice_spike',
-            name: 'Ice Spike',
-            type: 'Magic',
-            attack: 9,
-            defense: 0,
-            cost: 3,
-            description: 'Piercing ice projectile'
-        });
-
-        this.addCard({
-            id: 'frozen_ground',
-            name: 'Frozen Ground',
-            type: 'Magic',
-            attack: 4,
-            defense: 6,
-            cost: 2,
-            description: 'Freeze the ground for protection'
-        });
-
-        this.addCard({
-            id: 'cold_snap',
-            name: 'Cold Snap',
-            type: 'Magic',
-            attack: 10,
-            defense: 0,
-            cost: 3,
-            description: 'Sudden burst of cold'
-        });
-
-        this.addCard({
-            id: 'frost_ward',
-            name: 'Frost Ward',
-            type: 'Magic',
-            attack: 0,
-            defense: 8,
-            cost: 2,
-            description: 'Ward of frost energy'
-        });
-
-        this.addCard({
-            id: 'winter_embrace',
-            name: 'Winter Embrace',
-            type: 'Magic',
-            attack: 0,
-            defense: 13,
-            cost: 4,
-            description: 'Embrace of winter protects you'
-        });
-
-        // Lightning Spells
-        this.addCard({
-            id: 'lightning_bolt',
-            name: 'Lightning Bolt',
-            type: 'Magic',
-            attack: 10,
-            defense: 0,
-            cost: 3,
-            description: 'Channel lightning through your hands'
-        });
-
-        this.addCard({
-            id: 'thunder_strike',
-            name: 'Thunder Strike',
             type: 'Magic',
             attack: 12,
             defense: 0,
@@ -1622,7 +1440,7 @@ export class CardManager {
             attack: 8,
             defense: 0,
             cost: 3,
-            description: 'Launch a fireball'
+            description: 'Single target fire projectile'
         });
 
         this.addCard({
@@ -1632,77 +1450,67 @@ export class CardManager {
             attack: 12,
             defense: 0,
             cost: 4,
-            description: 'Strike with a meteor'
+            description: 'AoE damage to all enemies'
         });
 
         this.addCard({
             id: 'inferno',
             name: 'Inferno',
             type: 'Magic',
-            attack: 15,
+            attack: 10,
             defense: 0,
             cost: 5,
-            description: 'Summon an inferno'
+            description: 'Massive AoE fire damage'
         });
 
         this.addCard({
             id: 'flame_burst',
             name: 'Flame Burst',
             type: 'Magic',
-            attack: 9,
+            attack: 6,
             defense: 0,
             cost: 3,
-            description: 'Burst with flame'
+            description: 'Single target explosion'
         });
 
         this.addCard({
             id: 'pyroclasm',
             name: 'Pyroclasm',
             type: 'Magic',
-            attack: 11,
+            attack: 9,
             defense: 0,
             cost: 4,
-            description: 'Explode with pyroclasm'
-        });
-
-        this.addCard({
-            id: 'molten_strike',
-            name: 'Molten Strike',
-            type: 'Magic',
-            attack: 10,
-            defense: 0,
-            cost: 3,
-            description: 'Strike with molten force'
+            description: 'AoE fire and lava damage'
         });
 
         this.addCard({
             id: 'blaze_bolt',
             name: 'Blaze Bolt',
             type: 'Magic',
-            attack: 8,
+            attack: 5,
             defense: 0,
             cost: 2,
-            description: 'Launch a blaze bolt'
+            description: 'Single target fire bolt'
         });
 
         this.addCard({
             id: 'heat_wave',
             name: 'Heat Wave',
             type: 'Magic',
-            attack: 9,
+            attack: 8,
             defense: 0,
             cost: 3,
-            description: 'Create a wave of heat'
+            description: 'AoE heat damage'
         });
 
         this.addCard({
             id: 'infernal_blast',
             name: 'Infernal Blast',
             type: 'Magic',
-            attack: 13,
+            attack: 11,
             defense: 0,
             cost: 5,
-            description: 'Blast with infernal force'
+            description: 'Single target infernal damage'
         });
     }
 

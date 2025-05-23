@@ -1017,9 +1017,12 @@ export class Game {
         const cardData = this.cardManager.getCard(cardId);
         if (!cardData) return;
 
-        // Check if player has enough resources
-        if (this.playerResource < cardData.cost) {
-            this.showResourceNotification(cardData.cost);
+        // Calculate total cost including queued cards
+        const totalCost = this.reservedResource + cardData.cost;
+
+        // Check if player has enough resources for total cost
+        if (this.playerResource < totalCost) {
+            this.showResourceNotification(totalCost);
             return;
         }
 
@@ -1027,8 +1030,8 @@ export class Game {
         const playedCard = this.playerDeck.hand.splice(cardIndex, 1)[0];
         this.playerDeck.discardPile.push(playedCard);
 
-        // Deduct resource cost (ensure it doesn't go below 0)
-        this.playerResource = Math.max(0, this.playerResource - cardData.cost);
+        // Deduct resource cost
+        this.playerResource -= cardData.cost;
 
         // Apply card effects
         this.applyCardEffects(cardData, targetEnemy);
@@ -1052,7 +1055,6 @@ export class Game {
         notification.innerHTML = `
             <div class="resource-icon">${resourceIcon}</div>
             <h3>Not Enough ${resourceName}!</h3>
-            <p>You need ${requiredCost} ${resourceName.toLowerCase()} to play this card.</p>
             <button class="close-notification">OK</button>
         `;
         
@@ -1751,8 +1753,19 @@ export class Game {
         // Draw cards until player has 5 cards, keeping existing cards
         const cardsToDraw = 5 - currentHandSize;
         for (let i = 0; i < cardsToDraw; i++) {
+            // If draw pile is empty, try to shuffle discard pile into draw pile
+            if (this.playerDeck.drawPile.length === 0 && this.playerDeck.discardPile.length > 0) {
+                this.playerDeck.drawPile = [...this.playerDeck.discardPile];
+                this.playerDeck.discardPile = [];
+                this.shuffleDeck();
+            }
+            
             const card = this.drawCard();
-            if (!card) break;
+            if (!card) {
+                // If we still can't draw a card, break to prevent infinite loop
+                console.warn('Could not draw a card - both draw pile and discard pile are empty');
+                break;
+            }
         }
 
         // Update hand with dealing animation, passing the previous hand size
@@ -2157,6 +2170,11 @@ export class Game {
             const narration = document.querySelector('.level17-narration');
             if (narration) narration.remove();
             const buyBtn = document.querySelector('.level17-buy-btn');
+            if (buyBtn) buyBtn.remove();
+        }
+        // Remove level 18 buy button if leaving level 18
+        if (this.currentLevel !== 18) {
+            const buyBtn = document.querySelector('.scroll-shop-buy-btn');
             if (buyBtn) buyBtn.remove();
         }
         // Track previous level before changing
@@ -3078,6 +3096,62 @@ export class Game {
             };
         };
         document.body.appendChild(btn);
+    }
+
+    showManaFullNotification() {
+        this.showFullNotification('Mana is full');
+    }
+
+    showHealthFullNotification() {
+        this.showFullNotification('Health is full');
+    }
+
+    showFullNotification(message) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'full-notification';
+        notification.textContent = message;
+        
+        // Style the notification
+        notification.style.position = 'fixed';
+        notification.style.bottom = '200px';
+        notification.style.right = '210px';
+        notification.style.background = 'rgba(30,30,30,0.95)';
+        notification.style.color = '#b6ffb6';
+        notification.style.padding = '8px 16px';
+        notification.style.borderRadius = '8px';
+        notification.style.border = '2px solid #39ff14';
+        notification.style.fontFamily = 'Cinzel, Times New Roman, serif';
+        notification.style.zIndex = '4000';
+        notification.style.boxShadow = '0 0 12px 2px #39ff1466';
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(10px)';
+        notification.style.transition = 'opacity 0.3s, transform 0.3s';
+        
+        // Add to document
+        document.body.appendChild(notification);
+
+        // Show notification with animation
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateY(0)';
+        }, 10);
+
+        // Remove after 2 seconds
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 2000);
+    }
+
+    // Add this method to check if mana is full
+    isManaFull() {
+        return this.playerResource >= this.maxResource;
     }
 }
 

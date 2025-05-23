@@ -26,8 +26,21 @@ export function runLevel7(game) {
         statsContainer.style.position = 'absolute';
         statsContainer.style.left = '0';
         statsContainer.style.bottom = '0';
-        playerElement.appendChild(statsContainer);
+        statsContainer.innerHTML = `
+            <div class="health-bar">
+                <div class="health-bar-fill" style="width: 100%"></div>
+            </div>
+            <div class="defense-bar">
+                <div class="defense-bar-fill" style="width: 0%"></div>
+                <div class="defense-text">Defense: 0</div>
+            </div>
+            <div class="resource-bar">
+                <div class="resource-bar-fill" style="width: ${(game.playerResource / game.maxResource) * 100}%"></div>
+            </div>
+            <div class="resource-label">${game.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${game.playerResource}</div>
+        `;
         playerSide.appendChild(playerElement);
+        playerSide.appendChild(statsContainer);
     }
 
     // Start the werewolf pack cinematic

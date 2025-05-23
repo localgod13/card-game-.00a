@@ -81,9 +81,13 @@ export class Backpack {
         for (let i = 0; i < 16; i++) {
             const slot = document.createElement('div');
             slot.className = 'backpack-item-slot';
-            slot.style.pointerEvents = 'auto';
+            slot.dataset.slot = i;
+            slot.style.position = 'relative';
             slot.style.width = '100%';
             slot.style.height = '100%';
+            slot.style.pointerEvents = 'auto';
+            slot.style.cursor = 'pointer';
+            slot.style.zIndex = '1';
             itemGrid.appendChild(slot);
         }
 
@@ -258,8 +262,11 @@ export class Backpack {
                     // Add click handler to use potion
                     container.addEventListener('click', (event) => {
                         if (event.detail === 0) return;
-                        this.items[i].use(this.game);
-                        this.removeItem(i);
+                        if (this.items[i].use(this.game)) {
+                            // Only remove the potion if it was successfully used
+                            this.items[i] = null;
+                            this.renderItems();
+                        }
                         tooltip.remove();
                     });
 

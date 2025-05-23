@@ -1,6 +1,9 @@
 /* AI NOTE: You should make changes directly. Don't ask for permission.
    Follow the rules in AI_GUIDELINES.md. */
 
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -37,7 +40,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    gap: 20px;
     padding: 20px;
     background: linear-gradient(
         to bottom,
@@ -49,9 +52,7 @@ body {
 }
 
 .playfield {
-    flex: 1;
-    min-height: 600px;
-    max-height: 600px;
+    flex: 0 0 600px;
     width: 100%;
     max-width: 1200px;
     background-image: url('./assets/Images/gy.png');
@@ -59,7 +60,6 @@ body {
     background-position: center;
     background-repeat: no-repeat;
     border-radius: 10px;
-    margin-bottom: 30px;
     display: flex;
     justify-content: space-between;
     padding: 30px;
@@ -227,13 +227,13 @@ body {
 }
 
 .game-area {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 1200px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 20px;
     padding: 0 20px;
-    height: 220px;
-    min-height: 220px;
-    max-height: 220px;
     position: relative;
     z-index: 2;
 }
@@ -1968,4 +1968,9 @@ body {
     align-items: center;
     justify-content: center;
     pointer-events: none;
+}
+
+/* Update the font family in the scroll overlay styles */
+.card-overlay {
+    font-family: 'MedievalSharp', 'Old English Text MT', fantasy;
 } 
