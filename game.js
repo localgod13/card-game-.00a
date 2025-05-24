@@ -41,6 +41,7 @@ import { runLevel5 } from './levels/level5.js';
 import { LevelManager } from './levelManager.js';
 import { runLevel18 } from './levels/level18.js';
 import { Store } from './store.js';
+import { QuestManager } from './questManager.js';
 
 window.addEventListener('error', function (e) {
     try {
@@ -95,9 +96,14 @@ export class Game {
 
     constructor() {
         if (Game.instance) {
-            return Game.instance;
+            // Cleanup existing instance
+            if (Game.instance.questManager) {
+                Game.instance.questManager.cleanup();
+            }
+            Game.instance = this;
+        } else {
+            Game.instance = this;
         }
-        Game.instance = this;
 
         // Track resources
         this.animationIntervals = new Set();
@@ -136,6 +142,9 @@ export class Game {
         this.soundManager = new SoundManager();
         this.levelManager = new LevelManager(this);
         this.store = new Store(this);
+
+        // Initialize quest manager
+        this.questManager = new QuestManager(this);
 
         // Load all sound effects
         const soundEffects = {
@@ -324,9 +333,15 @@ export class Game {
             this.typewriterTimeouts.forEach(clear => clear());
             this.typewriterTimeouts = [];
         }
+        if (this.questManager) {
+            this.questManager.cleanup();
+        }
     }
 
     initialize(playerClass, playerDeck, level1Music = null) {
+        // Clear any existing quests from localStorage when starting a new game
+        localStorage.removeItem('quests');
+        
         this.playerClass = playerClass;
         if (playerDeck) {
             this.playerDeck = playerDeck;
@@ -2165,6 +2180,10 @@ export class Game {
     startNextLevel() {
         // Clear original card values when starting a new level
         this.originalCardValues.clear();
+        
+        // Track previous level before changing
+        this.previousLevel = this.currentLevel;
+        
         // Remove level 17 narration and buy button if leaving level 17
         if (this.currentLevel !== 17) {
             const narration = document.querySelector('.level17-narration');
@@ -2177,14 +2196,14 @@ export class Game {
             const buyBtn = document.querySelector('.scroll-shop-buy-btn');
             if (buyBtn) buyBtn.remove();
         }
-        // Track previous level before changing
-        // this.previousLevel = this.currentLevel; // REMOVE THIS LINE
+        
         // Update level indicator
         const levelIndicator = document.querySelector('div[style*="position: fixed"][style*="top: 20px"][style*="left: 20px"]');
         if (levelIndicator) {
             levelIndicator.textContent = `Level ${this.currentLevel}`;
         }
-        // Clean up existing enemies
+        
+        // Clean up existing enemies and elements
         this.enemies.forEach(enemy => {
             if (enemy.animationInterval) {
                 clearInterval(enemy.animationInterval);
@@ -2194,6 +2213,15 @@ export class Game {
             }
         });
         this.enemies = []; // Clear the enemies array
+        
+        // Clear any existing interactable rectangles
+        const existingRects = document.querySelectorAll('.interactable-rect');
+        existingRects.forEach(rect => rect.remove());
+        
+        // Clear any existing buttons
+        const existingButtons = document.querySelectorAll('.enter-town-btn, .continue-btn, .continue-deeper-btn');
+        existingButtons.forEach(btn => btn.remove());
+        
         // Set background for each level
         const playfield = document.querySelector('.playfield');
         if (playfield) {
@@ -2201,10 +2229,18 @@ export class Game {
                 runLevel18(this);
                 return;
             }
-            // ... existing background logic for other levels ...
+            // Initialize the level through LevelManager
+            this.levelManager.initializeLevel(this.currentLevel);
         }
+        
         // Re-initialize the game for the new level
         this.initializeGame();
+        
+        // Update quests for the new level
+        if (this.questManager) {
+            this.questManager.onLevelChange(this.currentLevel);
+        }
+        
         // Run-in animation for mage/warrior after player element is created
         if ((this.playerClass === 'mage' || this.playerClass === 'warrior') && this.currentLevel !== 7 && this.currentLevel !== 17) {
             setTimeout(() => {
@@ -2239,6 +2275,7 @@ export class Game {
                 }
             }, 50); // Ensure DOM is ready
         }
+        
         // Reset player's turn after all enemies are spawned
         setTimeout(() => {
             this.isLevelTransitioning = false;
@@ -2249,50 +2286,6 @@ export class Game {
                 gameScene.style.pointerEvents = 'auto';
             }
         }, this.currentLevel * 800 + 1000);
-        // Play forestnar.mp3 narration when reaching level 5
-        if (this.currentLevel === 5) {
-            // (Removed duplicate narration and music logic; now handled by LevelManager)
-        }
-        // Play forestexit.mp3 when reaching level 8
-        if (this.currentLevel === 8) {
-            const audio = this.soundManager.sounds.get('forestexit');
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(() => {});
-                audio.onended = () => {
-                    this.showEnterTownButton();
-                };
-            } else {
-                // If audio not found, fallback to show button after 3 seconds
-                setTimeout(() => this.showEnterTownButton(), 3000);
-            }
-        }
-        // Play nighttown.mp3 as background music and townnar.mp3 narration when reaching level 9
-        if (this.currentLevel === 9) {
-            // Stop previous level music
-            if (this.levelMusic) {
-                this.levelMusic.pause();
-                this.levelMusic.currentTime = 0;
-            }
-            // Start nighttown.mp3 as new background music
-            this.levelMusic = new Audio('./assets/Audio/nighttown.mp3');
-            this.levelMusic.loop = true;
-            this.levelMusic.volume = this.musicVolume || 0.5;
-            this.levelMusic.play().catch(error => {
-                console.log('Autoplay prevented:', error);
-                const startMusic = () => {
-                    this.levelMusic.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            });
-            // Debug log for narration
-            console.log('[LEVEL 9] previousLevel:', this.previousLevel, 'currentLevel:', this.currentLevel);
-        }
-        // Play narration when reaching level 17
-        if (this.currentLevel === 17) {
-            this.showLevel17Narration();
-        }
     }
 
     addContinueButton() {
@@ -3006,12 +2999,22 @@ export class Game {
         box.innerHTML = `
             <div style="margin-bottom: 12px; font-size: 1.1em; color: #39ff14;">Alchemist</div>
             <div class="typewriter-narration" style="margin-bottom: 12px; min-height: 80px;"></div>
-            <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+                <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Ask about the Master Smith</button>
+            </div>
         `;
-        const btn = box.querySelector('button');
-        btn.onclick = () => {
+        const continueBtn = box.querySelector('button:first-child');
+        const askBtn = box.querySelector('button:last-child');
+        continueBtn.onclick = () => {
             box.remove();
             this.showLevel17BuyButton();
+        };
+        askBtn.onclick = () => {
+            const target = box.querySelector('.typewriter-narration');
+            target.textContent = "Garrick? Hah, stubborn as ever. Said he was heading up through the mountain pass to restock his gear—won't say what kind, just mumbled something about 'new alloys' and vanished.\"\n\n\"If you ask me, bad timing. Goblins have been getting bolder up that way. He should've waited.";
+            continueBtn.style.display = 'inline-block';
+            askBtn.style.display = 'none';
         };
         document.body.appendChild(box);
         const text = `You've come to the right place, traveler. Out there, steel and spells might keep you alive—but in here? It's knowledge and a little alchemical assistance.`;
@@ -3030,7 +3033,8 @@ export class Game {
                 timeoutId = setTimeout(() => typewriter(i + 1), delay);
             } else {
                 finished = true;
-                btn.style.display = 'inline-block';
+                continueBtn.style.display = 'inline-block';
+                askBtn.style.display = 'inline-block';
             }
         };
         typewriter();
@@ -3040,7 +3044,8 @@ export class Game {
                 finished = true;
                 clearTimeout(timeoutId);
                 target.textContent = text;
-                btn.style.display = 'inline-block';
+                continueBtn.style.display = 'inline-block';
+                askBtn.style.display = 'inline-block';
             }
         };
     }

@@ -927,6 +927,16 @@ export class CardManager {
             description: 'Guardian of infernal fire'
         });
 
+        this.addCard({
+            id: 'molten_strike',
+            name: 'Molten Strike',
+            type: 'Magic',
+            attack: 10,
+            defense: 0,
+            cost: 3,
+            description: 'Strike with molten lava'
+        });
+
         // Ice Defense Cards
         this.addCard({
             id: 'ice_shield',
@@ -1477,7 +1487,7 @@ export class CardManager {
             id: 'pyroclasm',
             name: 'Pyroclasm',
             type: 'Magic',
-            attack: 9,
+            attack: 13,
             defense: 0,
             cost: 4,
             description: 'AoE fire and lava damage'

@@ -12,6 +12,10 @@ export function runLevel18(game) {
     document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
     document.querySelectorAll('.interactable-rect').forEach(el => el.remove());
     document.querySelectorAll('.innkeeper-dialogue-box').forEach(el => el.remove());
+    // Remove any existing boardsd, boardsw, and shopnote2 images
+    document.querySelectorAll('.boardsd-image').forEach(el => el.remove());
+    document.querySelectorAll('.boardsw-image').forEach(el => el.remove());
+    document.querySelectorAll('.shopnote2-image').forEach(el => el.remove());
     // Set background to smerch.png
     const playfield = document.querySelector('.playfield');
     if (playfield) {
@@ -42,10 +46,24 @@ export function runLevel18(game) {
     dialogueBox.innerHTML = `
         <div style="margin-bottom: 12px; font-size: 1.1em; color: #39ff14;">Scroll Merchant</div>
         <div class="typewriter-narration" style="margin-bottom: 12px; min-height: 80px;"></div>
-        <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+            <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Ask about the Master Smith</button>
+        </div>
     `;
-    const btn = dialogueBox.querySelector('button');
-    btn.onclick = () => {
+    const continueBtn = dialogueBox.querySelector('button:first-child');
+    const askBtn = dialogueBox.querySelector('button:last-child');
+    continueBtn.onclick = () => {
+        // Check if we're showing the Garrick dialogue
+        const target = dialogueBox.querySelector('.typewriter-narration');
+        if (target.textContent.includes("Still no sign of Garrick")) {
+            // Add the new quest
+            game.questManager.addQuest(
+                'garricks_trail',
+                "Garrick's Trail",
+                "Garrick is overdue from his supply run to the mountain pass. Investigate his disappearance."
+            );
+        }
         dialogueBox.remove();
         // Add Buy Scrolls button
         const buyBtn = document.createElement('button');
@@ -180,6 +198,23 @@ export function runLevel18(game) {
         });
         document.body.appendChild(buyBtn);
     };
+    askBtn.onclick = () => {
+        const target = dialogueBox.querySelector('.typewriter-narration');
+        target.textContent = "Still no sign of Garrick... It's been five days since he set out for the mountain pass. Said he'd be back in three.\"\n\n\"We're starting to get concerned. He's no stranger to danger, but disappearing like this? That's not like him. If your path leads that way, maybe see if you can find him.";
+        continueBtn.style.display = 'inline-block';
+        askBtn.style.display = 'none';
+
+        // Complete the "Speak to the Shop Keepers" quest
+        game.questManager.completeQuest('shopkeepers_quest');
+
+        // Add the new "Search for Garrick" quest
+        game.questManager.addQuest({
+            title: "Search for Garrick in the Mountain Pass",
+            description: "The scroll merchant mentioned that Garrick has been missing for five days after heading to the mountain pass. Investigate his disappearance.",
+            type: "main",
+            level: 18
+        });
+    };
     document.body.appendChild(dialogueBox);
     const text = "Ink and incantation await. Browse carefully — some of these scrolls bite back.";
     const target = dialogueBox.querySelector('.typewriter-narration');
@@ -197,7 +232,8 @@ export function runLevel18(game) {
             timeoutId = setTimeout(() => typewriter(i + 1), delay);
         } else {
             finished = true;
-            btn.style.display = 'inline-block';
+            continueBtn.style.display = 'inline-block';
+            askBtn.style.display = 'inline-block';
         }
     };
     typewriter();
@@ -207,7 +243,8 @@ export function runLevel18(game) {
             finished = true;
             clearTimeout(timeoutId);
             target.textContent = text;
-            btn.style.display = 'inline-block';
+            continueBtn.style.display = 'inline-block';
+            askBtn.style.display = 'inline-block';
         }
     };
 

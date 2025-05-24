@@ -22,51 +22,219 @@ export class LevelManager {
     }
 
     initializeLevel(level) {
+        // Clear any existing level elements first
+        this.clearLevelElements();
+        
+        // Set up the new level
         this.setBackground(level);
         this.setMusicAndNarration(level);
         this.spawnEnemies(level);
+
+        // Add boardsd.png and boardsw.png for level 9
+        if (level === 9) {
+            // Add quest for reading the shop note
+            this.game.questManager.addQuest(
+                'shop_note_9',
+                'Mysterious Shop Note',
+                'A strange note has appeared near the shop. Perhaps it contains important information?'
+            );
+
+            const boardsd = document.createElement('img');
+            boardsd.className = 'boardsd-image';
+            boardsd.src = './assets/Images/boardsd.png';
+            boardsd.style.position = 'absolute';
+            boardsd.style.left = '73%';
+            boardsd.style.top = '85%';
+            boardsd.style.transform = 'translate(-50%, -50%) scale(0.13)';
+            boardsd.style.zIndex = '1000';
+            document.querySelector('.playfield').appendChild(boardsd);
+
+            const boardsw = document.createElement('img');
+            boardsw.className = 'boardsw-image';
+            boardsw.src = './assets/Images/boardsw.png';
+            boardsw.style.position = 'absolute';
+            boardsw.style.left = '82.5%';
+            boardsw.style.top = '80%';
+            boardsw.style.transform = 'translate(-50%, -50%) scale(0.104)';
+            boardsw.style.zIndex = '1000';
+            document.querySelector('.playfield').appendChild(boardsw);
+
+            const shopnote2 = document.createElement('img');
+            shopnote2.className = 'shopnote2-image';
+            shopnote2.src = './assets/Images/shopnote2.png';
+            shopnote2.style.position = 'absolute';
+            shopnote2.style.left = '72.9%';
+            shopnote2.style.top = '80%';
+            shopnote2.style.transform = 'translate(-50%, -50%) scale(0.06)';
+            shopnote2.style.zIndex = '4000';
+            shopnote2.style.cursor = 'pointer';
+            shopnote2.addEventListener('click', () => {
+                // Play a sound when clicked
+                this.game.soundManager.playSound('click', 0.5);
+                
+                // Complete the quest when note is read
+                this.game.questManager.completeQuest('shop_note_9');
+                
+                // Create popup container
+                const popup = document.createElement('div');
+                popup.style.position = 'fixed';
+                popup.style.top = '50%';
+                popup.style.left = '50%';
+                popup.style.transform = 'translate(-50%, -50%)';
+                popup.style.zIndex = '5000';
+
+                // Create the shopnote image
+                const shopnote = document.createElement('img');
+                shopnote.src = './assets/Images/shopnote.png';
+                shopnote.style.display = 'block';
+                shopnote.style.maxWidth = '40vw';
+                shopnote.style.maxHeight = '40vh';
+                shopnote.style.margin = '0 auto';
+                shopnote.style.cursor = 'pointer';
+
+                // Add elements to popup
+                popup.appendChild(shopnote);
+                document.body.appendChild(popup);
+
+                // Close popup when clicking the note
+                shopnote.addEventListener('click', () => {
+                    document.body.removeChild(popup);
+                });
+            });
+            document.querySelector('.playfield').appendChild(shopnote2);
+        }
+        // Add boardsd.png for level 16
+        else if (level === 16) {
+            // Add quest for reading the shop note
+            this.game.questManager.addQuest(
+                'shop_note_16',
+                'Shop Note in Town',
+                'There seems to be a note near the shop in town. It might be worth checking out.'
+            );
+
+            const boardsd = document.createElement('img');
+            boardsd.className = 'boardsd-image';
+            boardsd.src = './assets/Images/boardsd.png';
+            boardsd.style.position = 'absolute';
+            boardsd.style.left = '70%';
+            boardsd.style.top = '84%';
+            boardsd.style.transform = 'translate(-50%, -50%) scale(0.13)';
+            boardsd.style.zIndex = '1000';
+            document.querySelector('.playfield').appendChild(boardsd);
+
+            const boardsw = document.createElement('img');
+            boardsw.className = 'boardsw-image';
+            boardsw.src = './assets/Images/boardsw.png';
+            boardsw.style.position = 'absolute';
+            boardsw.style.left = '79.5%';
+            boardsw.style.top = '80%';
+            boardsw.style.transform = 'translate(-50%, -50%) scale(0.104)';
+            boardsw.style.zIndex = '1000';
+            document.querySelector('.playfield').appendChild(boardsw);
+
+            const shopnote2 = document.createElement('img');
+            shopnote2.className = 'shopnote2-image';
+            shopnote2.src = './assets/Images/shopnote2.png';
+            shopnote2.style.position = 'absolute';
+            shopnote2.style.left = '69.9%';
+            shopnote2.style.top = '80%';
+            shopnote2.style.transform = 'translate(-50%, -50%) scale(0.06)';
+            shopnote2.style.zIndex = '4000';
+            shopnote2.style.cursor = 'pointer';
+            shopnote2.addEventListener('click', () => {
+                // Play a sound when clicked
+                this.game.soundManager.playSound('click', 0.5);
+                
+                // Complete the quest when note is read
+                this.game.questManager.completeQuest('shop_note_16');
+                
+                // Create popup container
+                const popup = document.createElement('div');
+                popup.style.position = 'fixed';
+                popup.style.top = '50%';
+                popup.style.left = '50%';
+                popup.style.transform = 'translate(-50%, -50%)';
+                popup.style.zIndex = '5000';
+
+                // Create the shopnote image
+                const shopnote = document.createElement('img');
+                shopnote.src = './assets/Images/shopnote.png';
+                shopnote.style.display = 'block';
+                shopnote.style.maxWidth = '40vw';
+                shopnote.style.maxHeight = '40vh';
+                shopnote.style.margin = '0 auto';
+                shopnote.style.cursor = 'pointer';
+
+                // Add elements to popup
+                popup.appendChild(shopnote);
+                document.body.appendChild(popup);
+
+                // Close popup when clicking the note
+                shopnote.addEventListener('click', () => {
+                    document.body.removeChild(popup);
+                });
+            });
+            document.querySelector('.playfield').appendChild(shopnote2);
+        }
+    }
+
+    clearLevelElements() {
+        // Clear any existing interactable rectangles
+        const existingRects = document.querySelectorAll('.interactable-rect');
+        existingRects.forEach(rect => rect.remove());
+        
+        // Clear any existing buttons
+        const existingButtons = document.querySelectorAll('.enter-town-btn, .continue-btn, .continue-deeper-btn');
+        existingButtons.forEach(btn => btn.remove());
+        
+        // Clear any existing narration elements
+        const existingNarration = document.querySelectorAll('.level17-narration, .level-narration');
+        existingNarration.forEach(narration => narration.remove());
+        
+        // Clear any existing buy buttons
+        const existingBuyButtons = document.querySelectorAll('.level17-buy-btn, .scroll-shop-buy-btn');
+        existingBuyButtons.forEach(btn => btn.remove());
+
+        // Clear any existing boardsd, boardsw, and shopnote2 images
+        const existingBoardsd = document.querySelector('.boardsd-image');
+        if (existingBoardsd) existingBoardsd.remove();
+        const existingBoardsw = document.querySelector('.boardsw-image');
+        if (existingBoardsw) existingBoardsw.remove();
+        const existingShopnote2 = document.querySelector('.shopnote2-image');
+        if (existingShopnote2) existingShopnote2.remove();
     }
 
     setBackground(level) {
         const playfield = document.querySelector('.playfield');
         if (!playfield) return;
+        
+        // Reset background properties
+        playfield.style.backgroundImage = '';
+        playfield.style.backgroundSize = '';
+        playfield.style.backgroundPosition = '';
+        playfield.style.backgroundRepeat = '';
+        
         if (level === 1) {
             playfield.style.backgroundImage = "url('./assets/Images/gy.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 2) {
             playfield.style.backgroundImage = "url('./assets/Images/graveyard2.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 3) {
             playfield.style.backgroundImage = "url('./assets/Images/graveyard3.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 4) {
             playfield.style.backgroundImage = "url('./assets/Images/forest.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 5) {
             playfield.style.backgroundImage = "url('./assets/Images/forest2.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 6) {
             playfield.style.backgroundImage = "url('./assets/Images/forest3.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 7) {
             playfield.style.backgroundImage = "url('./assets/Images/forest5.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 8) {
             playfield.style.backgroundImage = "url('./assets/Images/ftown.png')";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
         } else if (level === 9) {
             playfield.style.backgroundImage = "url('./assets/Images/level9.png')";
             playfield.style.backgroundSize = 'cover';
-            playfield.style.backgroundPosition = '';
-            playfield.style.backgroundRepeat = '';
+            playfield.style.backgroundPosition = 'center';
+            playfield.style.backgroundRepeat = 'no-repeat';
         } else if (level === 10) {
             playfield.style.backgroundImage = "url('./assets/Images/innnight.png')";
             playfield.style.backgroundSize = 'cover';
@@ -107,26 +275,21 @@ export class LevelManager {
             playfield.style.backgroundSize = 'cover';
             playfield.style.backgroundPosition = 'center';
             playfield.style.backgroundRepeat = 'no-repeat';
-        } else {
-            playfield.style.backgroundImage = "";
-            playfield.style.backgroundSize = '';
-            playfield.style.backgroundPosition = '';
-            playfield.style.backgroundRepeat = '';
         }
     }
 
     setMusicAndNarration(level) {
-        // Handle music and narration for specific levels
+        // Stop any existing level music
+        if (this.game.levelMusic) {
+            this.game.levelMusic.pause();
+            this.game.levelMusic.currentTime = 0;
+        }
+
         if (level === 5) {
             if (this.game.playerClass === 'mage') {
                 this.game.soundManager.playSound('forestnar', 0.5);
             } else if (this.game.playerClass === 'warrior') {
                 this.game.soundManager.playSound('warforest', 0.5);
-            }
-            // Stop previous level music
-            if (this.game.levelMusic) {
-                this.game.levelMusic.pause();
-                this.game.levelMusic.currentTime = 0;
             }
             // Start forestmusic.mp3 as new background music
             this.game.levelMusic = new Audio('./assets/Audio/forestmusic.mp3');
@@ -151,32 +314,7 @@ export class LevelManager {
                 };
                 document.addEventListener('click', startMusic);
             });
-            // Show 'Continue Deeper' button after narration finishes
-            const forestAudio = this.game.playerClass === 'mage' ? this.game.soundManager.sounds.get('forestnar') : this.game.soundManager.sounds.get('warforest');
-            const showContinue = () => {
-                this.game.addContinueDeeperButton();
-                // Remove click listener if present
-                const playfield = document.querySelector('.playfield');
-                if (playfield) playfield.removeEventListener('click', skipNarration);
-            };
-            const skipNarration = () => {
-                if (forestAudio) {
-                    forestAudio.pause();
-                    forestAudio.currentTime = 0;
-                }
-                showContinue();
-            };
-            if (forestAudio) {
-                forestAudio.onended = showContinue;
-                // Allow skipping by clicking the playfield
-                const playfield = document.querySelector('.playfield');
-                if (playfield) playfield.addEventListener('click', skipNarration);
-            } else {
-                // Fallback: show after 10 seconds if audio not found
-                setTimeout(showContinue, 10000);
-            }
-        }
-        if (level === 8) {
+        } else if (level === 8) {
             const audio = this.game.soundManager.sounds.get('forestexit');
             if (audio) {
                 audio.volume = 0.7;
@@ -186,16 +324,9 @@ export class LevelManager {
                     this.game.showEnterTownButton();
                 };
             } else {
-                // If audio not found, fallback to show button after 3 seconds
                 setTimeout(() => this.game.showEnterTownButton(), 3000);
             }
-        }
-        if (level === 9) {
-            // Stop previous level music
-            if (this.game.levelMusic) {
-                this.game.levelMusic.pause();
-                this.game.levelMusic.currentTime = 0;
-            }
+        } else if (level === 9) {
             // Start nighttown.mp3 as new background music
             this.game.levelMusic = new Audio('./assets/Audio/nighttown.mp3');
             this.game.levelMusic.loop = true;
@@ -208,6 +339,7 @@ export class LevelManager {
                 };
                 document.addEventListener('click', startMusic);
             });
+            
             // Play townnar.mp3 narration (once, not looping) ONLY if not coming from level 10
             if (this.game.previousLevel !== 10) {
                 const narration = new Audio('./assets/Audio/townnar.mp3');
@@ -221,6 +353,8 @@ export class LevelManager {
                     document.addEventListener('click', startNarration);
                 });
             }
+        } else if (level === 17) {
+            this.game.showLevel17Narration();
         }
     }
 
