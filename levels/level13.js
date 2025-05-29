@@ -62,7 +62,7 @@ export function runLevel13(game) {
     doorBox.style.background = 'rgba(80, 200, 255, 0.25)';
     doorBox.style.border = '2px solid #39ff14';
     doorBox.style.borderRadius = '12px';
-    doorBox.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+    doorBox.style.cursor = 'pointer';
     doorBox.style.zIndex = '3000';
     doorBox.title = 'Door';
     doorBox.style.display = 'flex';
@@ -79,7 +79,7 @@ export function runLevel13(game) {
     doorBox.addEventListener('mouseenter', () => {
         doorBox.style.background = 'rgba(80, 255, 180, 0.35)';
         doorBox.style.borderColor = '#fff';
-        doorBox.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+        doorBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
     });
     doorBox.addEventListener('mouseleave', () => {
         doorBox.style.background = 'rgba(80, 200, 255, 0.25)';

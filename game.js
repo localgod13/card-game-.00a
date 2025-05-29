@@ -107,10 +107,6 @@ export class Game {
             Game.instance = this;
         }
 
-        // Determine if we're running on GitHub Pages
-        const isGitHubPages = window.location.hostname.includes('github.io');
-        this.baseUrl = isGitHubPages ? '/Card-Game' : '';
-
         // Track resources
         this.animationIntervals = new Set();
         this.eventListeners = new Map();
@@ -2500,13 +2496,13 @@ export class Game {
         rect1.style.background = 'rgba(80, 200, 255, 0.25)';
         rect1.style.border = '2px solid #39ff14';
         rect1.style.borderRadius = '12px';
-        rect1.style.cursor = `url("${this.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+        rect1.style.cursor = 'pointer';
         rect1.style.zIndex = '3000';
         rect1.title = 'Interact (door)';
         rect1.addEventListener('mouseenter', () => {
             rect1.style.background = 'rgba(80, 255, 180, 0.35)';
             rect1.style.borderColor = '#fff';
-            rect1.style.cursor = `url("${this.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+            rect1.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
         });
         rect1.addEventListener('mouseleave', () => {
             rect1.style.background = 'rgba(80, 200, 255, 0.25)';
@@ -2555,13 +2551,13 @@ export class Game {
         rect2.style.background = 'rgba(80, 200, 255, 0.25)';
         rect2.style.border = '2px solid #39ff14';
         rect2.style.borderRadius = '12px';
-        rect2.style.cursor = `url("${this.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+        rect2.style.cursor = 'pointer';
         rect2.style.zIndex = '3000';
         rect2.title = 'Interact (door)';
         rect2.addEventListener('mouseenter', () => {
             rect2.style.background = 'rgba(80, 255, 180, 0.35)';
             rect2.style.borderColor = '#fff';
-            rect2.style.cursor = `url("${this.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+            rect2.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
         });
         rect2.addEventListener('mouseleave', () => {
             rect2.style.background = 'rgba(80, 200, 255, 0.25)';
@@ -2610,13 +2606,13 @@ export class Game {
         rect3.style.background = 'rgba(80, 200, 255, 0.25)';
         rect3.style.border = '2px solid #39ff14';
         rect3.style.borderRadius = '12px';
-        rect3.style.cursor = `url("${this.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+        rect3.style.cursor = 'pointer';
         rect3.style.zIndex = '3000';
         rect3.title = 'Interact (door)';
         rect3.addEventListener('mouseenter', () => {
             rect3.style.background = 'rgba(80, 255, 180, 0.35)';
             rect3.style.borderColor = '#fff';
-            rect3.style.cursor = `url("${this.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
+            rect3.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
         });
         rect3.addEventListener('mouseleave', () => {
             rect3.style.background = 'rgba(80, 200, 255, 0.25)';
@@ -2665,14 +2661,14 @@ export class Game {
         rect4.style.background = 'rgba(80, 200, 255, 0.25)';
         rect4.style.border = '2px solid #39ff14';
         rect4.style.borderRadius = '12px';
-        rect4.style.cursor = `url("${this.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
+        rect4.style.cursor = 'pointer';
         rect4.style.zIndex = '3000';
         rect4.title = 'Interact (door)';
         rect4.addEventListener('mouseenter', () => {
             rect4.style.background = 'rgba(80, 255, 180, 0.35)';
             rect4.style.borderColor = '#fff';
             // Use mageboots48.png as the cursor
-            rect4.style.cursor = `url("${this.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
+            rect4.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
         });
         rect4.addEventListener('mouseleave', () => {
             rect4.style.background = 'rgba(80, 200, 255, 0.25)';
