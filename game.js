@@ -1331,24 +1331,24 @@ export class Game {
                         const cleanup = this.effectRenderer.createInfernoEffect(centerX, centerY, width, height);
                         infernoCleanups.push(cleanup);
                     });
-                    
+
                     // Play inferno sound effect
                     const infernoSound = this.soundManager.sounds.get('inferno');
                     if (infernoSound) {
                         infernoSound.currentTime = 0;
                         infernoSound.volume = this.sfxVolume;
                         infernoSound.play();
-                        
+                    
                         // Start fade out 600ms before the effect ends
-                        setTimeout(() => {
-                            const fadeOutInterval = setInterval(() => {
+                    setTimeout(() => {
+                        const fadeOutInterval = setInterval(() => {
                                 if (infernoSound.volume > 0.05) {
                                     infernoSound.volume -= 0.05; // Smaller steps for smoother fade
-                                } else {
+                            } else {
                                     infernoSound.pause();
                                     infernoSound.currentTime = 0;
-                                    clearInterval(fadeOutInterval);
-                                }
+                                clearInterval(fadeOutInterval);
+                            }
                             }, 30); // More frequent updates for smoother fade
                         }, 800);
                     }

@@ -52,7 +52,7 @@ export function runLevel19(game) {
     // Set background to leavingtown.png
     const playfield = document.querySelector('.playfield');
     if (playfield) {
-        playfield.style.backgroundImage = "url('/assets/Images/leavingtown.png')";
+        playfield.style.backgroundImage = "url('./assets/Images/leavingtown.png')";
         playfield.style.backgroundSize = 'cover';
         playfield.style.backgroundPosition = 'center';
         playfield.style.backgroundRepeat = 'no-repeat';
