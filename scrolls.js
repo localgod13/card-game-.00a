@@ -143,8 +143,8 @@ export class ScrollOfEchoingFury extends Scroll {
         // Add click handler to use scroll
         container.addEventListener('click', (event) => {
             if (event.detail === 0) return;
-            this.use(window.game);
-            const backpack = window.game.backpack;
+            this.use(element.closest('.backpack-container').__game);
+            const backpack = element.closest('.backpack-container').__game.backpack;
             if (backpack) {
                 backpack.removeItem(parseInt(element.dataset.slot));
             }
@@ -285,8 +285,8 @@ export class ScrollOfUnbrokenWard extends Scroll {
         // Add click handler to use scroll
         container.addEventListener('click', (event) => {
             if (event.detail === 0) return;
-            this.use(window.game);
-            const backpack = window.game.backpack;
+            this.use(element.closest('.backpack-container').__game);
+            const backpack = element.closest('.backpack-container').__game.backpack;
             if (backpack) {
                 backpack.removeItem(parseInt(element.dataset.slot));
             }
@@ -448,8 +448,8 @@ export class ScrollOfTemporalGrace extends Scroll {
         // Add click handler to use scroll
         container.addEventListener('click', (event) => {
             if (event.detail === 0) return;
-            this.use(window.game);
-            const backpack = window.game.backpack;
+            this.use(element.closest('.backpack-container').__game);
+            const backpack = element.closest('.backpack-container').__game.backpack;
             if (backpack) {
                 backpack.removeItem(parseInt(element.dataset.slot));
             }
@@ -765,8 +765,8 @@ export class ScrollOfArcaneDebt extends Scroll {
         // Add click handler to use scroll
         container.addEventListener('click', (event) => {
             if (event.detail === 0) return;
-            this.use(window.game);
-            const backpack = window.game.backpack;
+            this.use(element.closest('.backpack-container').__game);
+            const backpack = element.closest('.backpack-container').__game.backpack;
             if (backpack) {
                 backpack.removeItem(parseInt(element.dataset.slot));
             }

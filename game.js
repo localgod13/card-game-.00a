@@ -28,6 +28,8 @@ import { runLevel14 } from './levels/level14.js';
 import { runLevel15 } from './levels/level15.js';
 import { runLevel16 } from './levels/level16.js';
 import { runLevel17 } from './levels/level17.js';
+import { runLevel18 } from './levels/level18.js';
+import { runLevel19 } from './levels/level19.js';
 import { SoundManager } from './soundManager.js';
 import { PlayerCharacter } from './playerCharacter.js';
 import { runLevel6 } from './levels/level6.js';
@@ -39,9 +41,9 @@ import { runLevel3 } from './levels/level3.js';
 import { runLevel4 } from './levels/level4.js';
 import { runLevel5 } from './levels/level5.js';
 import { LevelManager } from './levelManager.js';
-import { runLevel18 } from './levels/level18.js';
 import { Store } from './store.js';
 import { QuestManager } from './questManager.js';
+import { MapTransition } from './mapTransition.js';
 
 window.addEventListener('error', function (e) {
     try {
@@ -115,6 +117,7 @@ export class Game {
         this.player = null;
         this.enemies = [];
         this.currentLevel = 1;
+        this.maxLevel = 17;  // Set max level to 17
         this.isPlayerTurn = true;
         this.isPaused = false;
         this.playerClass = null;
@@ -138,8 +141,8 @@ export class Game {
         this.pauseMenu = null; // Add pause menu reference
         this.musicVolume = 0.5; // Add music volume
         this.sfxVolume = 0.5; // Add sound effects volume
-        this.lastHurtSound = null; // Track last played hurt sound
-        this.soundManager = new SoundManager();
+        this.lastHurtSound = null;
+        this.soundManager = SoundManager.instance || new SoundManager(); // Use existing instance or create new one
         this.levelManager = new LevelManager(this);
         this.store = new Store(this);
 
@@ -175,7 +178,10 @@ export class Game {
             'townnar': './assets/Audio/townnar.mp3',
             'closed1': './assets/Audio/closed1.mp3',
             'closed2': './assets/Audio/closed2.mp3',
-            'closed3': './assets/Audio/closed3.mp3'
+            'closed3': './assets/Audio/closed3.mp3',
+            'mageintro': './assets/Audio/mageintro.wav',
+            'warriorintro': './assets/Audio/warriorintro.mp3',
+            'townday': './assets/Audio/townday.mp3'
         };
 
         // Load each sound effect
@@ -183,7 +189,6 @@ export class Game {
             this.soundManager.loadSound(id, path);
         });
 
-        this.maxLevel = 12;
         this.isLevelTransitioning = false;
 
         // Add keydown event listener for X key kill functionality
@@ -236,6 +241,7 @@ export class Game {
         this.playerGold = 0; // Track player gold
         this.defeatedEnemies = [];
         this.originalCardValues = new Map(); // Store original card values
+        this.mapTransition = new MapTransition(this);
     }
 
     // Method to track intervals
@@ -364,24 +370,6 @@ export class Game {
         // Initialize backpack
         this.backpack.initialize();
 
-        // Use provided level music or create new if not provided
-        if (level1Music) {
-            this.levelMusic = level1Music;
-        } else {
-            // Initialize level music only if not provided
-            this.levelMusic = new Audio('./assets/Audio/level1.mp3');
-            this.levelMusic.loop = true;
-            this.levelMusic.volume = 0.5;
-            this.levelMusic.play().catch(error => {
-                console.log('Autoplay prevented:', error);
-                const startMusic = () => {
-                    this.levelMusic.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            });
-        }
-
         // Initialize player based on class
         if (playerClass === 'warrior') {
             const warrior = new Warrior();
@@ -495,8 +483,8 @@ export class Game {
         levelSelector.style.borderRadius = '3px';
         levelSelector.style.cursor = 'pointer';
 
-        // Add options for each level up to 17
-        for (let i = 1; i <= 17; i++) {
+        // Add options for each level up to 20
+        for (let i = 1; i <= 20; i++) {
             const option = document.createElement('option');
             option.value = i;
             option.textContent = `Level ${i}`;
@@ -545,63 +533,63 @@ export class Game {
             
             // Only create player element if not on level 7, 13, or 17
             if (this.currentLevel !== 7 && this.currentLevel !== 13 && this.currentLevel !== 17) {
-            // Create player element with the already initialized playerCharacter
-            const playerElement = this.playerCharacter.createPlayerElement();
-            playerElement.setAttribute('data-class', this.playerClass); // Set the class attribute
-            
-            // Add shield aura
-            const shieldAura = document.createElement('div');
-            shieldAura.className = 'shield-aura';
-            playerElement.appendChild(shieldAura);
-            
-            // Create a separate container for stats that won't move with the player
-            const statsContainer = document.createElement('div');
-            statsContainer.className = 'character-stats';
-            statsContainer.style.position = 'absolute'; // Position absolutely
-            statsContainer.style.left = '0'; // Align to the left of player side
-            statsContainer.style.bottom = '0'; // Align to the bottom
-            statsContainer.innerHTML = `
-                <div class="health-bar">
-                    <div class="health-bar-fill" style="width: 100%"></div>
-                </div>
-                <div class="defense-bar">
-                    <div class="defense-bar-fill" style="width: 0%"></div>
-                    <div class="defense-text">Defense: 0</div>
-                </div>
-                <div class="resource-bar">
-                    <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
-                </div>
-                <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
-            `;
-            
-            // Add stats container to player side instead of player element
-            playerSide.appendChild(playerElement);
-            playerSide.appendChild(statsContainer);
-            
-            // Run-in animation for all levels
-            if (this.playerClass === 'mage' || this.playerClass === 'warrior') {
-                playerElement.style.transition = 'none';
-                playerElement.style.transform = 'translateX(-600px)';
-                playerElement.style.opacity = '0';
-                setTimeout(() => {
-                    playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
-                    playerElement.style.opacity = '1';
-                    this.playerCharacter.playRunAnimation();
-                    // Play running sound
-                    const runningSound = this.soundManager.sounds.get('running');
-                    if (runningSound) {
-                        runningSound.currentTime = 1;
-                        runningSound.play().catch(() => {});
-                    }
-                    playerElement.style.transform = 'translateX(0)';
+                // Create player element with the already initialized playerCharacter
+                const playerElement = this.playerCharacter.createPlayerElement();
+                playerElement.setAttribute('data-class', this.playerClass); // Set the class attribute
+                
+                // Add shield aura
+                const shieldAura = document.createElement('div');
+                shieldAura.className = 'shield-aura';
+                playerElement.appendChild(shieldAura);
+                
+                // Create a separate container for stats that won't move with the player
+                const statsContainer = document.createElement('div');
+                statsContainer.className = 'character-stats';
+                statsContainer.style.position = 'absolute'; // Position absolutely
+                statsContainer.style.left = '0'; // Align to the left of player side
+                statsContainer.style.bottom = '0'; // Align to the bottom
+                statsContainer.innerHTML = `
+                    <div class="health-bar">
+                        <div class="health-bar-fill" style="width: 100%"></div>
+                    </div>
+                    <div class="defense-bar">
+                        <div class="defense-bar-fill" style="width: 0%"></div>
+                        <div class="defense-text">Defense: 0</div>
+                    </div>
+                    <div class="resource-bar">
+                        <div class="resource-bar-fill" style="width: ${(this.playerResource / this.maxResource) * 100}%"></div>
+                    </div>
+                    <div class="resource-label">${this.playerClass === 'mage' ? 'Mana' : 'Rage'}: ${this.playerResource}</div>
+                `;
+                
+                // Add stats container to player side instead of player element
+                playerSide.appendChild(playerElement);
+                playerSide.appendChild(statsContainer);
+                
+                // Run-in animation for all levels except level 5
+                if ((this.playerClass === 'mage' || this.playerClass === 'warrior') && this.currentLevel !== 5) {
+                    playerElement.style.transition = 'none';
+                    playerElement.style.transform = 'translateX(-600px)';
+                    playerElement.style.opacity = '0';
                     setTimeout(() => {
-                        this.playerCharacter.stopRunAnimation();
+                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
+                        playerElement.style.opacity = '1';
+                        this.playerCharacter.playRunAnimation();
+                        // Play running sound
+                        const runningSound = this.soundManager.sounds.get('running');
                         if (runningSound) {
-                            runningSound.pause();
-                            runningSound.currentTime = 0;
+                            runningSound.currentTime = 1;
+                            runningSound.play().catch(() => {});
                         }
-                    }, 2000);
-                }, 50);
+                        playerElement.style.transform = 'translateX(0)';
+                        setTimeout(() => {
+                            this.playerCharacter.stopRunAnimation();
+                            if (runningSound) {
+                                runningSound.pause();
+                                runningSound.currentTime = 0;
+                            }
+                        }, 2000);
+                    }, 50);
                 }
             }
         }
@@ -1051,6 +1039,12 @@ export class Game {
         // Apply card effects
         this.applyCardEffects(cardData, targetEnemy);
 
+        // If the card is a Defense or Magic card with defense value, update defense and aura
+        if ((cardData.type === 'Defense' || cardData.type === 'Magic') && cardData.defense) {
+            this.playerDefense = Math.min(100, this.playerDefense + cardData.defense);
+            this.updateDefenseBar();
+        }
+
         // Update the display
         this.updatePlayerHand();
         this.updatePileCounts();
@@ -1102,65 +1096,17 @@ export class Game {
         if (cardData.type === 'Attack' || cardData.type === 'Magic') {
             // Play sound effects before animation
             if (cardData.id === 'molten_strike') {
-                const moltenSound = new Audio('./assets/Audio/molten.mp3');
-                moltenSound.volume = this.sfxVolume;
-                moltenSound.play().catch(error => console.log('Error playing molten strike sound:', error));
+                this.soundManager.playSound('molten', this.sfxVolume);
             }
             else if (cardData.id === 'blaze_bolt') {
-                const blazeBoltSound = new Audio('./assets/Audio/molten.mp3');
-                blazeBoltSound.volume = this.sfxVolume;
-                blazeBoltSound.play().catch(error => console.log('Error playing blaze bolt sound:', error));
+                this.soundManager.playSound('molten', this.sfxVolume);
             }
 
             // Play attack animation
             if (this.playerCharacter) {
                 this.playerCharacter.playAttackAnimation();
-                
-                // Play molten strike sound if it's a molten strike card
-                if (cardData.id === 'molten_strike') {
-                    const moltenSound = new Audio('./assets/Audio/molten.mp3');
-                    moltenSound.volume = this.sfxVolume;
-                    moltenSound.play().catch(error => console.log('Error playing molten strike sound:', error));
                 }
             }
-
-            // Wait for attack animation to complete before applying damage
-            setTimeout(() => {
-                // Calculate damage with buffs
-                let damage = cardData.attack;
-                if (this.playerBuffs && this.playerBuffs.has('echoingFury')) {
-                    damage *= 2;
-                }
-                
-                const isDead = enemy.takeDamage(damage);
-                // Play skeledead.mp3 if a Skeleton dies
-                if (isDead && enemy.constructor.name === 'Skeleton') {
-                    console.log('Playing skeledead.mp3');
-                    this.soundManager.playSound('skeledead');
-                }
-                if (isDead) {
-                    this.defeatedEnemies.push({ type: enemy.constructor.name });
-                    enemy.destroy();
-                    this.enemies = this.enemies.filter(e => e.id !== enemy.id);
-                    this.checkLevelCompletion();
-                }
-                
-                // Additional effects for Magic cards
-                if (cardData.type === 'Magic') {
-                    // Add any additional magic effects here
-                    // For example, healing the player or adding defense
-                    if (cardData.defense) {
-                        this.playerDefense = Math.min(100, this.playerDefense + cardData.defense);
-                        this.updateDefenseBar();
-                    }
-                }
-            }, 800); // Wait for attack animation to complete
-        } else if (cardData.type === 'Defense') {
-            // Handle defense cards
-            this.playerDefense = Math.min(100, this.playerDefense + cardData.defense);
-            this.updateDefenseBar();
-        }
-        // Add other card effect types here as needed
     }
 
     updateHealthBars() {
@@ -1250,10 +1196,11 @@ export class Game {
 
         // Execute queued attacks
         this.executeQueuedAttacks().then(() => {
-            // Enemy's turn
+            // Wait for all visual effects to complete (2 seconds for heat wave, etc.)
             setTimeout(() => {
+                // Enemy's turn
                 this.enemyTurn();
-            }, 1000);
+            }, 2000);
         });
     }
 
@@ -1341,9 +1288,7 @@ export class Game {
                 
                 // Play molten strike sound if it's a molten strike card
                 if (attack.cardId === 'molten_strike') {
-                    const moltenSound = new Audio('./assets/Audio/molten.mp3');
-                    moltenSound.volume = this.sfxVolume;
-                    moltenSound.play().catch(error => console.log('Error playing molten strike sound:', error));
+                    this.soundManager.playSound('molten', this.sfxVolume);
                 }
             }
 
@@ -1355,28 +1300,20 @@ export class Game {
                 if (attack.cardId === 'fireball') {
                     const playerElement = document.querySelector('.player-character');
                     if (playerElement) {
-                        // Play fireball sound effect with sfxVolume
-                        const fireballSound = new Audio('./assets/Audio/fire1.mp3');
-                        fireballSound.volume = this.sfxVolume;
-                        fireballSound.play().catch(error => console.log('Error playing fireball sound:', error));
+                        // Play fireball sound effect
+                        this.soundManager.playSound('fire1', this.sfxVolume);
                         
                         this.createFireballEffect(playerElement, enemyElement);
                         
                         // Wait for fireball to reach enemy, then play explosion
                         setTimeout(() => {
-                            const explosionSound = new Audio('./assets/Audio/explosion.mp3');
-                            explosionSound.volume = this.sfxVolume;
-                            explosionSound.play().catch(error => console.log('Error playing explosion sound:', error));
-                        }, 4000); // Slightly before the fireball animation completes
+                            this.soundManager.playSound('explosion', this.sfxVolume);
+                        }, 800); // Reduced from 4000ms to 800ms to match the fireball animation duration
                         
                         // Wait for fireball animation to complete
                         await new Promise(resolve => setTimeout(resolve, 500));
                     }
                 } else if (attack.cardId === 'inferno') {
-                    // Play inferno sound effect
-                    const infernoSound = new Audio('./assets/Audio/inferno.mp3');
-                    infernoSound.volume = this.sfxVolume;
-                    
                     // Create inferno effect for all enemies simultaneously
                     const infernoCleanups = [];
                     this.enemies.forEach(enemy => {
@@ -1394,24 +1331,30 @@ export class Game {
                         const cleanup = this.effectRenderer.createInfernoEffect(centerX, centerY, width, height);
                         infernoCleanups.push(cleanup);
                     });
-
-                    // Play the sound
-                    infernoSound.play().catch(error => console.log('Error playing inferno sound:', error));
                     
-                    // Start fade out 500ms before the effect ends
-                    setTimeout(() => {
-                        const fadeOutInterval = setInterval(() => {
-                            if (infernoSound.volume > 0.05) {
-                                infernoSound.volume -= 0.05;
-                            } else {
-                                infernoSound.pause();
-                                clearInterval(fadeOutInterval);
-                            }
-                        }, 50);
-                    }, 700);
+                    // Play inferno sound effect
+                    const infernoSound = this.soundManager.sounds.get('inferno');
+                    if (infernoSound) {
+                        infernoSound.currentTime = 0;
+                        infernoSound.volume = this.sfxVolume;
+                        infernoSound.play();
+                        
+                        // Start fade out 600ms before the effect ends
+                        setTimeout(() => {
+                            const fadeOutInterval = setInterval(() => {
+                                if (infernoSound.volume > 0.05) {
+                                    infernoSound.volume -= 0.05; // Smaller steps for smoother fade
+                                } else {
+                                    infernoSound.pause();
+                                    infernoSound.currentTime = 0;
+                                    clearInterval(fadeOutInterval);
+                                }
+                            }, 30); // More frequent updates for smoother fade
+                        }, 800);
+                    }
                     
                     // Wait for the visual effect to complete
-                    await new Promise(resolve => setTimeout(resolve, 900));
+                    await new Promise(resolve => setTimeout(resolve, 1400));
                     
                     // Clean up all inferno effects
                     infernoCleanups.forEach(cleanup => {
@@ -1435,9 +1378,7 @@ export class Game {
                     
                     // Create meteor effect with sound callback
                     this.effectRenderer.createMeteorEffect(centerX, centerY, () => {
-                        const meteorSound = new Audio('./assets/Audio/fire2.mp3');
-                        meteorSound.volume = this.sfxVolume;
-                        meteorSound.play().catch(error => console.log('Error playing meteor sound:', error));
+                        this.soundManager.playSound('fire2', this.sfxVolume);
                     });
                     // Wait for meteor animation to complete
                     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1476,18 +1417,14 @@ export class Game {
                         }
                         
                         // Play blaze bolt sound effect
-                        const blazeBoltSound = new Audio('./assets/Audio/molten.mp3');
-                        blazeBoltSound.volume = this.sfxVolume;
-                        blazeBoltSound.play().catch(error => console.log('Error playing blaze bolt sound:', error));
+                        this.soundManager.playSound('molten', this.sfxVolume);
                         
                         // Create blaze bolt effect
                         this.effectRenderer.createFireBoltEffect(startX, startY, endX, endY);
                         
                         // Wait for blaze bolt to reach enemy, then play explosion
                         setTimeout(() => {
-                            const explosionSound = new Audio('./assets/Audio/explosion.mp3');
-                            explosionSound.volume = this.sfxVolume;
-                            explosionSound.play().catch(error => console.log('Error playing explosion sound:', error));
+                            this.soundManager.playSound('explosion', this.sfxVolume);
                             
                             // Create explosion effect at impact point
                             this.effectRenderer.createFlameBurstEffect(endX, endY);
@@ -1531,15 +1468,12 @@ export class Game {
                     console.log('Triggering pyroclasm effect');
                     
                     // Play pyroclasm sound effect
-                    const pyroclasmSound = new Audio('./assets/Audio/pyo.mp3');
-                    pyroclasmSound.volume = this.sfxVolume;
+                    this.soundManager.playSound('pyo', this.sfxVolume);
                     // Get player position for pyroclasm effect
                     const playerElement = document.querySelector('.player-character');
                     if (playerElement) {
                         // Play pyroclasm sound effect
-                        const pyroclasmSound = new Audio('./assets/Audio/pyo.mp3');
-                        pyroclasmSound.volume = this.sfxVolume;
-                        pyroclasmSound.play().catch(error => console.log('Error playing pyroclasm sound:', error));
+                        this.soundManager.playSound('pyo', this.sfxVolume);
 
                         const playerRect = playerElement.getBoundingClientRect();
                         const mageX = playerRect.left + playerRect.width / 2;
@@ -1553,59 +1487,53 @@ export class Game {
                 } else if (attack.cardId === 'heat_wave') {
                     console.log('Triggering heat wave effect');
                     
-                    // Play heat wave sound effect
-                    const heatWaveSound = new Audio('./assets/Audio/heatwave.mp3');
-                    heatWaveSound.volume = this.sfxVolume;
-                    heatWaveSound.play().catch(error => console.log('Error playing heat wave sound:', error));
-                    
-                    // Fade out after 4 seconds
-                    setTimeout(() => {
-                        const fadeOutInterval = setInterval(() => {
-                            if (heatWaveSound.volume > 0.05) {
-                                heatWaveSound.volume -= 0.05;
-                            } else {
-                                heatWaveSound.pause();
-                                clearInterval(fadeOutInterval);
-                            }
-                        }, 50);
-                    }, 4000);
-                    
-                    // Create heat wave effect for all enemies simultaneously
+                    // Create heat wave effect for all enemies
+                    const heatwaveCleanups = [];
                     this.enemies.forEach(enemy => {
-                        const enemyElement = enemy.element;
-                        const spriteElement = enemyElement.querySelector('.enemy-sprite');
-                        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemyElement.getBoundingClientRect();
+                        const spriteElement = enemy.element.querySelector('.enemy-sprite');
+                        const spriteRect = spriteElement ? spriteElement.getBoundingClientRect() : enemy.element.getBoundingClientRect();
                         
                         // Calculate target position (center of enemy sprite)
-                        let targetX = spriteRect.left + spriteRect.width / 2;
-                        let targetY = spriteRect.top + spriteRect.height / 2;
-                        
-                        // Apply enemy-specific hitbox offsets
-                        if (enemyElement.classList.contains('werewolf')) {
-                            // Werewolf hitbox: calculate center of the smaller green hitbox
-                            // The hitbox is positioned at the bottom center of the sprite
-                            targetX = spriteRect.left + spriteRect.width / 2;  // Center horizontally
-                            targetY = spriteRect.top + spriteRect.height * 0.55;  // Position at 55% down the sprite height (between previous positions)
-                        } else if (enemyElement.dataset.enemyId) {
-                            if (enemyElement.dataset.enemyId === "1" || enemyElement.dataset.enemyId === "2") {
-                                // Executioner hitbox offset
-                                targetX += 50 - 15; // Move 50px to the right (because of sprite flip), then 15px left for hitbox center
-                                targetY += 20; // Move 20px up to match the hitbox position
-                            } else if (enemyElement.classList.contains('enemy-character') && (enemyElement.dataset.enemyId === "3" || enemyElement.dataset.enemyId === "4")) {
-                                // Skeleton hitbox offset (IDs 3 and 4)
-                                // No X offset, but move 40px down for hitbox center
-                                targetY += 40;
-                            }
-                        }
-                        
-                        console.log('Heat wave target position:', targetX, targetY);
+                        const centerX = spriteRect.left + spriteRect.width / 2;
+                        const centerY = spriteRect.top + spriteRect.height / 2;
                         
                         // Create heat wave effect for this enemy
-                        this.effectRenderer.createHeatWaveEffect(targetX, targetY);
+                        const cleanup = this.effectRenderer.createHeatWaveEffect(centerX, centerY);
+                        heatwaveCleanups.push(cleanup);
                     });
+
+                    // Play heat wave sound effect
+                    const heatwaveSound = this.soundManager.sounds.get('heatwave');
+                    if (heatwaveSound) {
+                        heatwaveSound.currentTime = 0;
+                        heatwaveSound.volume = this.sfxVolume;
+                        heatwaveSound.play();
+                    }
                     
-                    // Wait for heat wave animation to complete
-                    await new Promise(resolve => setTimeout(resolve, 3900));
+                    // Start fade out 0.5 seconds before the effect ends
+                    setTimeout(() => {
+                        if (heatwaveSound) {
+                            const fadeOutInterval = setInterval(() => {
+                                if (heatwaveSound.volume > 0.05) {
+                                    heatwaveSound.volume -= 0.05;
+                                } else {
+                                    heatwaveSound.pause();
+                                    heatwaveSound.currentTime = 0;
+                                    clearInterval(fadeOutInterval);
+                                }
+                            }, 50);
+                        }
+                    }, 1500); // Start fade out at 1.5 seconds
+                    
+                    // Clean up effects after 2 seconds
+                    setTimeout(() => {
+                        // Clean up all heat wave effects
+                        heatwaveCleanups.forEach(cleanup => {
+                            if (typeof cleanup === 'function') {
+                                cleanup();
+                            }
+                        });
+                    }, 2000);
                 } else if (attack.cardId === 'flame_burst') {
                     // Get enemy position for flame burst effect
                     const spriteElement = enemyElement.querySelector('.enemy-sprite');
@@ -1634,9 +1562,7 @@ export class Game {
                     }
                     
                     // Play flame burst sound effect
-                    const flameBurstSound = new Audio('./assets/Audio/fire1.mp3');
-                    flameBurstSound.volume = this.sfxVolume;
-                    flameBurstSound.play().catch(error => console.log('Error playing flame burst sound:', error));
+                    this.soundManager.playSound('fire1', this.sfxVolume);
                     
                     // Create flame burst effect
                     this.effectRenderer.createFlameBurstEffect(targetX, targetY);
@@ -1692,7 +1618,8 @@ export class Game {
                 }
             }
 
-            if (cardData.type === 'Magic' && cardData.defense) {
+            // If the card is a Defense or Magic card with defense value, update defense and aura
+            if ((cardData.type === 'Defense' || cardData.type === 'Magic') && cardData.defense) {
                 this.playerDefense = Math.min(100, this.playerDefense + cardData.defense);
                 this.updateDefenseBar();
             }
@@ -2057,16 +1984,12 @@ export class Game {
         
         if (this.isPaused) {
             // Pause the game
-            if (this.levelMusic) {
-                this.levelMusic.pause();
-            }
+            this.soundManager.pauseMusic();
             // Disable game interactions
             this.gameScene.style.pointerEvents = 'none';
         } else {
             // Resume the game
-            if (this.levelMusic) {
-                this.levelMusic.play();
-            }
+            this.soundManager.resumeMusic();
             // Re-enable game interactions
             this.gameScene.style.pointerEvents = 'auto';
         }
@@ -2178,156 +2101,106 @@ export class Game {
     }
 
     startNextLevel() {
-        // Clear original card values when starting a new level
-        this.originalCardValues.clear();
-        
-        // Track previous level before changing
-        this.previousLevel = this.currentLevel;
-        
-        // Remove level 17 narration and buy button if leaving level 17
-        if (this.currentLevel !== 17) {
-            const narration = document.querySelector('.level17-narration');
-            if (narration) narration.remove();
-            const buyBtn = document.querySelector('.level17-buy-btn');
-            if (buyBtn) buyBtn.remove();
+        // Clear existing enemies and their animations
+        if (this.enemies) {
+            this.enemies.forEach(enemy => {
+                if (enemy.animationInterval) {
+                    clearInterval(enemy.animationInterval);
+                }
+                if (enemy.element && enemy.element.parentNode) {
+                    enemy.element.parentNode.removeChild(enemy.element);
+                }
+            });
+            this.enemies = []; // Clear the enemies array
         }
-        // Remove level 18 buy button if leaving level 18
-        if (this.currentLevel !== 18) {
-            const buyBtn = document.querySelector('.scroll-shop-buy-btn');
-            if (buyBtn) buyBtn.remove();
+
+        // Stop any existing music before starting new level
+        if (this.currentLevel === 19) {
+            // Force stop all music and clear any existing music reference
+            this.soundManager.stopMusic(false);
+            this.soundManager.currentMusic = null;
+            
+            // Stop and reset ALL audio elements
+            this.soundManager.sounds.forEach(audio => {
+                if (audio instanceof Audio) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.loop = false;
+                    audio.volume = 0;
+                }
+            });
+
+            // Explicitly stop and reset townday.mp3 if it exists
+            const towndayMusic = this.soundManager.sounds.get('townday');
+            if (towndayMusic) {
+                towndayMusic.pause();
+                towndayMusic.currentTime = 0;
+                towndayMusic.loop = false;
+                towndayMusic.volume = 0;
+            }
+
+            // Clear any existing level music
+            if (this.levelMusic) {
+                this.levelMusic.pause();
+                this.levelMusic.currentTime = 0;
+                this.levelMusic = null;
+            }
         }
-        
+
+        // Clear enemy-side element
+        const enemySide = document.querySelector('.enemy-side');
+        if (enemySide) {
+            while (enemySide.firstChild) {
+                enemySide.removeChild(enemySide.firstChild);
+            }
+        }
+
+        // Reset game state for new level
+        this.isPlayerTurn = true;
+        // Initialize resources based on player class
+        if (this.playerClass === 'mage') {
+            this.playerResource = 10;
+        } else {
+            this.playerResource = 0;
+        }
+        this.playerDefense = 0;
+        this.updateResourceBar();
+        this.updateDefenseBar();
+        this.updateHealthBars();
+        this.updatePileCounts();
+        this.updatePlayerHand(true);
+
         // Update level indicator
-        const levelIndicator = document.querySelector('div[style*="position: fixed"][style*="top: 20px"][style*="left: 20px"]');
+        const levelIndicator = document.querySelector('.level-indicator');
         if (levelIndicator) {
             levelIndicator.textContent = `Level ${this.currentLevel}`;
-        }
-        
-        // Clean up existing enemies and elements
-        this.enemies.forEach(enemy => {
-            if (enemy.animationInterval) {
-                clearInterval(enemy.animationInterval);
-            }
-            if (enemy.element && enemy.element.parentNode) {
-                enemy.element.parentNode.removeChild(enemy.element);
-            }
-        });
-        this.enemies = []; // Clear the enemies array
-        
-        // Clear any existing interactable rectangles
-        const existingRects = document.querySelectorAll('.interactable-rect');
-        existingRects.forEach(rect => rect.remove());
-        
-        // Clear any existing buttons
-        const existingButtons = document.querySelectorAll('.enter-town-btn, .continue-btn, .continue-deeper-btn');
-        existingButtons.forEach(btn => btn.remove());
-        
-        // Set background for each level
-        const playfield = document.querySelector('.playfield');
-        if (playfield) {
-            if (this.currentLevel === 18) {
-                runLevel18(this);
-                return;
-            }
-            // Initialize the level through LevelManager
-            this.levelManager.initializeLevel(this.currentLevel);
-        }
-        
-        // Re-initialize the game for the new level
-        this.initializeGame();
-        
-        // Update quests for the new level
-        if (this.questManager) {
-            this.questManager.onLevelChange(this.currentLevel);
-        }
-        
-        // Run-in animation for mage/warrior after player element is created
-        if ((this.playerClass === 'mage' || this.playerClass === 'warrior') && this.currentLevel !== 7 && this.currentLevel !== 17) {
-            setTimeout(() => {
-                const playerElement = document.querySelector('.player-character');
-                if (playerElement) {
-                    // Start with player off-screen
-                    playerElement.style.transition = 'none';
-                    playerElement.style.transform = 'translateX(-600px)';
-                    // Ensure player is not visible during initialization
-                    playerElement.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        // Make player visible and start run animation
-                        playerElement.style.opacity = '1';
-                        playerElement.style.transition = 'transform 2s ease-out, opacity 0.1s ease-out';
-                        this.playerCharacter.playRunAnimation();
-                        // Play running sound
-                        const runningSound = this.soundManager.sounds.get('running');
-                        if (runningSound) {
-                            runningSound.currentTime = 1;
-                            runningSound.play().catch(() => {});
-                        }
-                        playerElement.style.transform = 'translateX(0)';
-                        setTimeout(() => {
-                            this.playerCharacter.stopRunAnimation();
-                            if (runningSound) {
-                                runningSound.pause();
-                                runningSound.currentTime = 0;
-                            }
-                        }, 2000);
-                    }, 50);
-                }
-            }, 50); // Ensure DOM is ready
-        }
-        
-        // Reset player's turn after all enemies are spawned
-        setTimeout(() => {
-            this.isLevelTransitioning = false;
-            this.startPlayerTurn();
-            // Re-enable game interactions
-            const gameScene = document.querySelector('.game-scene');
-            if (gameScene) {
-                gameScene.style.pointerEvents = 'auto';
-            }
-        }, this.currentLevel * 800 + 1000);
-    }
-
-    addContinueButton() {
-        this.removeContinueButton();
-        const btn = document.createElement('button');
-        btn.className = 'continue-btn';
-        btn.textContent = 'Continue to the Forest';
-        btn.style.position = 'absolute';
-        btn.style.top = '50%';
-        btn.style.transform = 'translateY(-50%)';
-        btn.style.right = '40px';
-        btn.style.zIndex = '10';
-        btn.style.padding = '20px 40px';
-        btn.style.fontSize = '1.5em';
-        btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
-        btn.style.color = '#b6ffb6';
-        btn.style.border = '2px solid #39ff14';
-        btn.style.borderRadius = '16px';
-        btn.style.cursor = 'pointer';
-        btn.style.zIndex = '10';
-        btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
-        btn.style.fontFamily = '"Cinzel", "Times New Roman", serif';
-        btn.style.letterSpacing = '1px';
-        btn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-        btn.style.transition = 'box-shadow 0.2s, background 0.2s, color 0.2s';
-        btn.onmouseenter = () => {
-            btn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
-            btn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
-            btn.style.color = '#eaffea';
-        };
-        btn.onmouseleave = () => {
-            btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
-            btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
-            btn.style.color = '#b6ffb6';
-        };
-        btn.addEventListener('click', () => this.handleContinueLevel4());
-        const playfield = document.querySelector('.playfield');
-        if (playfield) {
-            playfield.appendChild(btn);
         } else {
-            document.body.appendChild(btn);
+            // Create level indicator if it doesn't exist
+            const newLevelIndicator = document.createElement('div');
+            newLevelIndicator.className = 'level-indicator';
+            newLevelIndicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-size: 24px;
+                font-family: Arial, sans-serif;
+                z-index: 1000;
+                border: 2px solid #666;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            `;
+            newLevelIndicator.textContent = `Level ${this.currentLevel}`;
+            document.body.appendChild(newLevelIndicator);
         }
+
+        // Notify quest manager of level change
+        this.questManager.onLevelChange(this.currentLevel);
+
+        // Initialize the new level
+        this.levelManager.initializeLevel(this.currentLevel);
     }
 
     removeContinueButton() {
@@ -2337,6 +2210,9 @@ export class Game {
 
     handleContinueLevel4() {
         this.removeContinueButton();
+        // Complete the Graveyard Shift quest
+        this.questManager.completeQuest('graveyard_shift');
+        
         // Player runs off screen like previous levels, then go to map screen
         const playerElement = document.querySelector('.player-character');
         if (playerElement) {
@@ -2444,6 +2320,30 @@ export class Game {
 
     completeLevel5() {
         this.removeContinueDeeperButton();
+        // Add the Lurking Silence quest
+        this.questManager.addQuest('lurking_silence', 'Lurking Silence', 'Something hunts in the dark. Make it to town before you\'re caught.');
+        
+        // Fade out forest narration sounds
+        const forestNar = this.soundManager.sounds.get('forestnar');
+        const warForest = this.soundManager.sounds.get('warforest');
+        
+        const fadeOutSound = (sound) => {
+            if (sound) {
+                const fadeOut = setInterval(() => {
+                    if (sound.volume > 0.05) {
+                        sound.volume -= 0.05;
+                    } else {
+                        sound.volume = 0;
+                        sound.pause();
+                        clearInterval(fadeOut);
+                    }
+                }, 100);
+            }
+        };
+
+        fadeOutSound(forestNar);
+        fadeOutSound(warForest);
+
         // Player runs off screen before showing level 6
         const playerElement = document.querySelector('.player-character');
         if (playerElement) {
@@ -2472,146 +2372,8 @@ export class Game {
         }
     }
 
-    showMapScreen() {
-        // Create overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'map-overlay';
-        overlay.style.position = 'fixed';
-        overlay.style.top = '0';
-        overlay.style.left = '0';
-        overlay.style.width = '100vw';
-        overlay.style.height = '100vh';
-        overlay.style.background = 'rgba(0,0,0,0.85)';
-        overlay.style.display = 'flex';
-        overlay.style.justifyContent = 'center';
-        overlay.style.alignItems = 'center';
-        overlay.style.zIndex = '2000';
-
-        // Map container
-        const mapContainer = document.createElement('div');
-        mapContainer.style.position = 'relative';
-        mapContainer.style.width = '900px';
-        mapContainer.style.height = '400px';
-        mapContainer.style.display = 'flex';
-        mapContainer.style.alignItems = 'center';
-        mapContainer.style.justifyContent = 'space-between';
-
-        // gy.png (left)
-        const gyImg = document.createElement('img');
-        gyImg.src = './assets/Images/gy.png';
-        gyImg.style.width = '250px';
-        gyImg.style.height = '250px';
-        gyImg.style.borderRadius = '16px';
-        gyImg.style.boxShadow = '0 0 24px #000';
-        gyImg.style.position = 'absolute';
-        gyImg.style.left = '0';
-        gyImg.style.top = '50%';
-        gyImg.style.transform = 'translateY(-50%)';
-
-        // forest2.png (right)
-        const forestImg = document.createElement('img');
-        forestImg.src = './assets/Images/forest2.png';
-        forestImg.style.width = '250px';
-        forestImg.style.height = '250px';
-        forestImg.style.borderRadius = '16px';
-        forestImg.style.boxShadow = '0 0 24px #000';
-        forestImg.style.position = 'absolute';
-        forestImg.style.right = '0';
-        forestImg.style.top = '50%';
-        forestImg.style.transform = 'translateY(-50%)';
-        forestImg.style.cursor = 'pointer';
-
-        // Dotted line
-        const line = document.createElement('div');
-        line.style.position = 'absolute';
-        line.style.left = '125px';
-        line.style.top = '50%';
-        line.style.width = '650px';
-        line.style.height = '0';
-        line.style.borderTop = '4px dotted #fff';
-        line.style.transform = 'translateY(-50%)';
-        line.style.zIndex = '1';
-
-        // Player sprite (idle)
-        const playerSprite = this.playerCharacter.createPlayerElement();
-        playerSprite.style.position = 'absolute';
-        playerSprite.style.left = '60px';
-        playerSprite.style.top = '50%';
-        playerSprite.style.transform = 'translateY(-50%)';
-        playerSprite.style.zIndex = '2';
-
-        // Remove shield aura and stats for map
-        const aura = playerSprite.querySelector('.shield-aura');
-        if (aura) aura.remove();
-        const stats = playerSprite.querySelector('.character-stats');
-        if (stats) stats.remove();
-
-        // Add elements to map container
-        mapContainer.appendChild(gyImg);
-        mapContainer.appendChild(forestImg);
-        mapContainer.appendChild(line);
-        mapContainer.appendChild(playerSprite);
-        overlay.appendChild(mapContainer);
-        document.body.appendChild(overlay);
-
-        // Animate player to forest2.png on click
-        forestImg.addEventListener('click', () => {
-            forestImg.style.filter = 'brightness(1.2) drop-shadow(0 0 16px #39ff14)';
-            // Run animation
-            this.playerCharacter.playRunAnimation();
-            const runningSound = this.soundManager.sounds.get('running');
-            if (runningSound) {
-                runningSound.currentTime = 1;
-                runningSound.play().catch(() => {});
-            }
-            // Animate left to right
-            playerSprite.style.transition = 'left 2s linear';
-            playerSprite.style.left = '590px'; // Move to forest2.png
-            // After run duration, stop run animation and show Enter button
-            setTimeout(() => {
-                this.playerCharacter.stopRunAnimation();
-                if (runningSound) {
-                    runningSound.pause();
-                    runningSound.currentTime = 0;
-                }
-                // Show Enter button
-                const enterBtn = document.createElement('button');
-                enterBtn.textContent = 'Enter';
-                enterBtn.style.position = 'absolute';
-                enterBtn.style.left = '690px';
-                enterBtn.style.top = '30%';
-                enterBtn.style.transform = 'translateY(-50%)';
-                enterBtn.style.padding = '16px 40px';
-                enterBtn.style.fontSize = '1.5em';
-                enterBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
-                enterBtn.style.color = '#b6ffb6';
-                enterBtn.style.border = '2px solid #39ff14';
-                enterBtn.style.borderRadius = '16px';
-                enterBtn.style.cursor = 'pointer';
-                enterBtn.style.zIndex = '10';
-                enterBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
-                enterBtn.style.fontFamily = '"Cinzel", "Times New Roman", serif';
-                enterBtn.style.letterSpacing = '1px';
-                enterBtn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
-                enterBtn.style.transition = 'box-shadow 0.2s, background 0.2s, color 0.2s';
-                enterBtn.addEventListener('mouseenter', () => {
-                    enterBtn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
-                    enterBtn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
-                    enterBtn.style.color = '#eaffea';
-                });
-                enterBtn.addEventListener('mouseleave', () => {
-                    enterBtn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
-                    enterBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
-                    enterBtn.style.color = '#b6ffb6';
-                });
-                enterBtn.addEventListener('click', () => {
-                    overlay.remove();
-                    this.currentLevel = 5;
-                    this.startNextLevel();
-                });
-                mapContainer.appendChild(enterBtn);
-            }, 2000);
-        });
+    showMapScreen(fromLocation = { image: 'forest2.png' }, toLocation = { image: 'town.png' }, onComplete) {
+        this.mapTransition.showMapScreen(fromLocation, toLocation, onComplete);
     }
 
     handleLevel6Completion() {
@@ -2701,12 +2463,23 @@ export class Game {
     }
 
     handleEnterTown() {
-        // Transition to level 9 (town hub)
+        // Complete the Lurking Silence quest
+        this.questManager.completeQuest('lurking_silence');
+        
+        // Remove the enter town button
         const btn = document.querySelector('.enter-town-btn');
         if (btn) btn.remove();
-        this.previousLevel = 8;
-        this.currentLevel = 9;
-        this.startNextLevel();
+
+        // Show map transition from current location to town
+        this.showMapScreen(
+            { image: 'forest2.png' },
+            { image: 'level9.png' },
+            () => {
+                this.previousLevel = 8;
+                this.currentLevel = 9;
+                this.startNextLevel();
+            }
+        );
     }
 
     createInteractableRectangle() {
@@ -3000,7 +2773,7 @@ export class Game {
             <div style="margin-bottom: 12px; font-size: 1.1em; color: #39ff14;">Alchemist</div>
             <div class="typewriter-narration" style="margin-bottom: 12px; min-height: 80px;"></div>
             <div style="display: flex; justify-content: center; gap: 10px;">
-                <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+            <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
                 <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Ask about the Master Smith</button>
             </div>
         `;
@@ -3034,7 +2807,10 @@ export class Game {
             } else {
                 finished = true;
                 continueBtn.style.display = 'inline-block';
-                askBtn.style.display = 'inline-block';
+                // Only show the ask button if the Garrick's Trail quest doesn't exist
+                if (!this.questManager.quests.has('garricks_trail')) {
+                    askBtn.style.display = 'inline-block';
+                }
             }
         };
         typewriter();
@@ -3045,34 +2821,51 @@ export class Game {
                 clearTimeout(timeoutId);
                 target.textContent = text;
                 continueBtn.style.display = 'inline-block';
-                askBtn.style.display = 'inline-block';
+                // Only show the ask button if the Garrick's Trail quest doesn't exist
+                if (!this.questManager.quests.has('garricks_trail')) {
+                    askBtn.style.display = 'inline-block';
+                }
             }
         };
     }
 
     showLevel17BuyButton() {
-        // Remove any existing buy button
-        const existingBtn = document.querySelector('.level17-buy-btn');
-        if (existingBtn) existingBtn.remove();
         // Only show if on level 17
         if (this.currentLevel !== 17) return;
+
+        // Remove any existing buy button
+        const existingBtn = document.querySelector('.merchant-buy-btn');
+        if (existingBtn) existingBtn.remove();
+
         const btn = document.createElement('button');
-        btn.className = 'level17-buy-btn';
+        btn.className = 'merchant-buy-btn';
         btn.textContent = 'Buy Potions';
         btn.style.position = 'fixed';
-        btn.style.top = '160px';
+        btn.style.top = '60px';
         btn.style.left = '62%';
         btn.style.transform = 'translateX(-40%)';
-        btn.style.padding = '14px 44px';
-        btn.style.fontSize = '1.2em';
+        btn.style.padding = '18px 36px';
+        btn.style.fontSize = '1.3em';
         btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
         btn.style.color = '#b6ffb6';
         btn.style.border = '2px solid #39ff14';
-        btn.style.borderRadius = '12px';
+        btn.style.borderRadius = '16px';
         btn.style.cursor = 'pointer';
-        btn.style.fontFamily = 'Cinzel, Times New Roman, serif';
         btn.style.zIndex = '4000';
-        btn.style.boxShadow = '0 0 18px 2px #39ff1466, 0 2px 12px rgba(0,0,0,0.7)';
+        btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+        btn.style.fontFamily = 'Cinzel, Times New Roman, serif';
+        btn.style.letterSpacing = '1px';
+        btn.style.textShadow = '0 0 8px #39ff14, 0 2px 2px #000';
+        btn.addEventListener('mouseenter', () => {
+            btn.style.boxShadow = '0 0 32px 8px #39ff14cc, 0 4px 32px rgba(0,0,0,0.8)';
+            btn.style.background = 'linear-gradient(135deg, #2a3a2a 60%, #3e5d3e 100%)';
+            btn.style.color = '#fff6ea';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.boxShadow = '0 0 24px 4px #39ff1466, 0 4px 24px rgba(0,0,0,0.7)';
+            btn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+            btn.style.color = '#b6ffb6';
+        });
         btn.onclick = () => {
             btn.remove();
             // Example items for sale
@@ -3093,10 +2886,18 @@ export class Game {
                 }
             }
             this.store.open(itemsForSale, playerInventory);
+            // Hide back button when store is open
+            const backBtn = document.querySelector('.merchant-back-btn');
+            if (backBtn) backBtn.style.display = 'none';
+            
             // Patch: re-show the button after store closes
             const origClose = this.store.close.bind(this.store);
             this.store.close = () => {
                 origClose();
+                // Show back button when store is closed
+                const backBtn = document.querySelector('.merchant-back-btn');
+                if (backBtn) backBtn.style.display = 'block';
+                
                 setTimeout(() => this.showLevel17BuyButton(), 100);
             };
         };
@@ -3157,6 +2958,10 @@ export class Game {
     // Add this method to check if mana is full
     isManaFull() {
         return this.playerResource >= this.maxResource;
+    }
+
+    cleanupMusic() {
+        this.soundManager.stopMusic(false);
     }
 }
 
@@ -3223,7 +3028,7 @@ if (import.meta.hot) {
                         let enemy;
                         switch (enemyData.type) {
                             case 'Executioner':
-                                enemy = new Executioner(enemyData.id, enemyData.maxHealth);
+                                enemy = new Executioner(enemyData.id, enemyData.maxHealth, newGame);
                                 break;
                             case 'FlyingDemon':
                                 enemy = new FlyingDemon(enemyData.id, enemyData.maxHealth);

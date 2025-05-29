@@ -91,6 +91,26 @@ export function runLevel9(game) {
             }, 2000);
         }
     }, 400);
-    // Add interactable rectangles for the town hub
-    game.createInteractableRectangle();
+
+    // Only create interactable rectangles if we're coming from level 10
+    // or if the town narration has finished playing
+    if (game.previousLevel === 10) {
+        game.createInteractableRectangle();
+    } else {
+        // Wait for town narration to finish before creating interactable rectangles
+        const townNarration = game.soundManager.sounds.get('townnar');
+        if (townNarration) {
+            const checkNarration = () => {
+                if (townNarration.ended || townNarration.paused) {
+                    game.createInteractableRectangle();
+                } else {
+                    setTimeout(checkNarration, 100);
+                }
+            };
+            checkNarration();
+        } else {
+            // If narration isn't available, create rectangles immediately
+            game.createInteractableRectangle();
+        }
+    }
 } 

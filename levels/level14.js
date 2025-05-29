@@ -9,6 +9,9 @@ export function runLevel14(game) {
     document.querySelectorAll('.inn-door-box').forEach(el => el.remove());
     document.querySelectorAll('.interactable-rect').forEach(el => el.remove());
     document.querySelectorAll('.innkeeper-dialogue-box').forEach(el => el.remove());
+    // Remove any existing Leave the Inn button
+    const existingLeaveBtn = document.querySelector('button[textContent="Leave the Inn"]');
+    if (existingLeaveBtn) existingLeaveBtn.remove();
     // Set background to innkeeper2.png
     const playfield = document.querySelector('.playfield');
     if (playfield) {
@@ -46,6 +49,8 @@ export function runLevel14(game) {
         leaveBtn.style.color = '#b6ffb6';
     });
     leaveBtn.addEventListener('click', () => {
+        // Remove the button before transitioning
+        leaveBtn.remove();
         game.previousLevel = 14;
         game.currentLevel = 15;
         game.startNextLevel();

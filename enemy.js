@@ -2,11 +2,12 @@
  * Base Enemy class for handling common enemy functionality
  */
 export class Enemy {
-    constructor(id, health, spriteSheet) {
+    constructor(id, health, spriteSheet, game) {
         this.id = id;
         this.health = health;
         this.maxHealth = health;
         this.spriteSheet = spriteSheet;
+        this.game = game; // Store game instance
         this.currentFrame = 0;
         this.element = null;
         this.animationInterval = null;

@@ -101,7 +101,13 @@ export class Preloader {
                 './assets/Audio/forestmusic.mp3',
                 './assets/Audio/level6nar.mp3',
                 './assets/Audio/howl.mp3',
-                './assets/Audio/exdeath.mp3'
+                './assets/Audio/exdeath.mp3',
+                './assets/Audio/nighttown.mp3',
+                './assets/Audio/townday.mp3',
+                './assets/Audio/mountain.mp3',
+                './assets/Audio/level20.mp3',
+                './assets/Audio/scrollv1.mp3',
+                './assets/Audio/scrollv2.mp3'
             ]
         };
     }

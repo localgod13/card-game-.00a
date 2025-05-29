@@ -47,6 +47,9 @@ export function runLevel17(game) {
         backBtn.addEventListener('click', () => {
             // Remove the button before transitioning
             backBtn.remove();
+            // Remove the buy button if it exists
+            const buyBtn = document.querySelector('.merchant-buy-btn');
+            if (buyBtn) buyBtn.remove();
             game.previousLevel = 17;
             game.currentLevel = 16;
             game.startNextLevel();
@@ -55,4 +58,15 @@ export function runLevel17(game) {
     }
     // No player, no enemies, just merchant shop UI
     console.log('[Level 17] Merchant shop scene loaded, currentLevel:', game.currentLevel);
+
+    // Patch: re-show the button after store closes
+    const origClose = this.store.close.bind(this.store);
+    this.store.close = () => {
+        origClose();
+        // Show back button when store is closed
+        const backBtn = document.querySelector('.merchant-back-btn');
+        if (backBtn) backBtn.style.display = 'block';
+        
+        setTimeout(() => this.showLevel17BuyButton(), 100);
+    };
 } 

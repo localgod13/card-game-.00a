@@ -1,5 +1,6 @@
 import { CardManager } from './cardManager.js';
 import { Game } from './game.js';
+import { SoundManager } from './soundManager.js';
 
 class BookAnimation {
     constructor() {
@@ -57,9 +58,11 @@ export class ClassSelection {
     constructor(loadedAssets) {
         this.selectedClass = null;
         this.selectedDeck = null;
-        this.titleMusic = null;
+        this.titleMusic = true; // Flag to control title music
         this.loadedAssets = loadedAssets;  // Store loaded assets
         this.bookAnimation = new BookAnimation();
+        this.soundManager = new SoundManager(); // Initialize SoundManager
+        
         this.warriorCards = [
             'sword_strike',
             'double_slash',
@@ -314,48 +317,38 @@ export class ClassSelection {
     }
 
     playTitleMusic() {
-        if (this.titleMusic) {
-            this.titleMusic.play().catch(error => {
-                console.log('Autoplay prevented:', error);
-                const startMusic = () => {
-                    this.titleMusic.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            });
+        if (this.titleMusic && this.soundManager) {
+            this.soundManager.playMusic('./assets/Audio/tsmusic.mp3', 0.5, true);
         }
     }
 
     startGame() {
-        // Fade out the title music
-        if (this.titleMusic) {
-            const fadeOut = setInterval(() => {
-                if (this.titleMusic.volume > 0.1) {
-                    this.titleMusic.volume -= 0.1;
-                } else {
-                    this.titleMusic.pause();
-                    this.titleMusic.currentTime = 0;
-                    this.titleMusic = null;
-                    clearInterval(fadeOut);
-                }
-            }, 100); // Fade out over 1 second
+        // Stop the title music immediately without fade
+        if (this.soundManager) {
+            this.soundManager.stopMusic(false); // Stop immediately without fade
         }
 
-        // Hide class selection
-        const classSelection = document.querySelector('.class-selection-container');
-        if (classSelection) {
-            classSelection.style.display = 'none';
-        }
+        // Small delay to ensure title music is stopped
+        setTimeout(() => {
+            // Start playing level1.mp3
+            this.soundManager.playMusic('./assets/Audio/level1.mp3', 0.5, true);
 
-        // Show the appropriate intro sequence based on selected class
-        if (this.selectedClass === 'mage') {
-            this.showMageIntro();
-        } else if (this.selectedClass === 'warrior') {
-            this.showWarriorIntro();
-        } else {
-            // Initialize the main game directly for other classes
-            this.initializeGame();
-        }
+            // Hide class selection
+            const classSelection = document.querySelector('.class-selection-container');
+            if (classSelection) {
+                classSelection.style.display = 'none';
+            }
+
+            // Show the appropriate intro sequence based on selected class
+            if (this.selectedClass === 'mage') {
+                this.showMageIntro();
+            } else if (this.selectedClass === 'warrior') {
+                this.showWarriorIntro();
+            } else {
+                // Initialize the main game directly for other classes
+                this.initializeGame();
+            }
+        }, 100);
     }
 
     showMageIntro() {
@@ -364,45 +357,10 @@ export class ClassSelection {
         fontLink.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap';
         fontLink.rel = 'stylesheet';
         document.head.appendChild(fontLink);
-
-        // Start level 1 music
-        const level1Music = new Audio('./assets/Audio/level1.mp3');
-        level1Music.volume = 0;
-        level1Music.loop = true;
         
-        // Play mage intro sound
-        const mageIntroSound = new Audio('./assets/Audio/mageintro.wav');
-        mageIntroSound.volume = 0.7;
+        // Play mage intro sound using SoundManager
+        this.soundManager.playClassIntroSound('mage');
         
-        // Start both sounds
-        Promise.all([
-            level1Music.play().catch(error => {
-                console.log('Level 1 music autoplay prevented:', error);
-                const startMusic = () => {
-                    level1Music.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            }),
-            mageIntroSound.play().catch(error => {
-                console.log('Mage intro sound autoplay prevented:', error);
-                const startSound = () => {
-                    mageIntroSound.play();
-                    document.removeEventListener('click', startSound);
-                };
-                document.addEventListener('click', startSound);
-            })
-        ]).then(() => {
-            // Fade in level 1 music
-            const fadeIn = setInterval(() => {
-                if (level1Music.volume < 0.5) {
-                    level1Music.volume += 0.05;
-                } else {
-                    clearInterval(fadeIn);
-                }
-            }, 100);
-        });
-
         // Create intro container
         const introContainer = document.createElement('div');
         introContainer.className = 'mage-intro-container';
@@ -535,55 +493,21 @@ export class ClassSelection {
 
         // Function to end intro with fade out for mage intro sound
         const endIntroWithFade = () => {
-            // Fade out the mage intro sound
-            const fadeOutInterval = setInterval(() => {
-                if (mageIntroSound.volume > 0.05) {
-                    mageIntroSound.volume -= 0.05;
-                } else {
-                    mageIntroSound.pause();
-                    mageIntroSound.currentTime = 0;
-                    clearInterval(fadeOutInterval);
-                }
-            }, 50);
-
             // Fade out the intro container
             introContainer.style.opacity = '0';
+            // Fade out the intro sound
+            this.soundManager.fadeOutIntroSound();
             setTimeout(() => {
                 if (introContainer && introContainer.parentNode === document.body) {
                     document.body.removeChild(introContainer);
                 }
-                this.initializeGame(level1Music); // Pass the music to the game
-            }, 1000);
-        };
-
-        // Function to end intro without fading mage intro sound
-        const endIntroWithoutFade = () => {
-            // Fade out the intro container
-            introContainer.style.opacity = '0';
-            setTimeout(() => {
-                if (introContainer && introContainer.parentNode === document.body) {
-                    document.body.removeChild(introContainer);
-                }
-                this.initializeGame(level1Music); // Pass the music to the game
+                this.initializeGame(); // Pass the music to the game
             }, 1000);
         };
 
         // Add click handler to skip intro
         introContainer.addEventListener('click', () => {
             endIntroWithFade();
-        });
-
-        // Get the duration of the mage intro sound and use it for the timeout
-        mageIntroSound.addEventListener('loadedmetadata', () => {
-            // Add a small buffer to ensure the sound finishes playing
-            const duration = mageIntroSound.duration * 1000 + 500;
-            
-            // Auto-end after the sound finishes
-            setTimeout(() => {
-                if (document.body.contains(introContainer)) {
-                    endIntroWithoutFade();
-                }
-            }, duration);
         });
     }
 
@@ -593,45 +517,10 @@ export class ClassSelection {
         fontLink.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap';
         fontLink.rel = 'stylesheet';
         document.head.appendChild(fontLink);
-
-        // Start level 1 music
-        const level1Music = new Audio('./assets/Audio/level1.mp3');
-        level1Music.volume = 0;
-        level1Music.loop = true;
         
-        // Play warrior intro sound
-        const warriorIntroSound = new Audio('./assets/Audio/warriorintro.mp3');
-        warriorIntroSound.volume = 0.7;
+        // Play warrior intro sound using SoundManager
+        this.soundManager.playClassIntroSound('warrior');
         
-        // Start both sounds
-        Promise.all([
-            level1Music.play().catch(error => {
-                console.log('Level 1 music autoplay prevented:', error);
-                const startMusic = () => {
-                    level1Music.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            }),
-            warriorIntroSound.play().catch(error => {
-                console.log('Warrior intro sound autoplay prevented:', error);
-                const startSound = () => {
-                    warriorIntroSound.play();
-                    document.removeEventListener('click', startSound);
-                };
-                document.addEventListener('click', startSound);
-            })
-        ]).then(() => {
-            // Fade in level 1 music
-            const fadeIn = setInterval(() => {
-                if (level1Music.volume < 0.5) {
-                    level1Music.volume += 0.05;
-                } else {
-                    clearInterval(fadeIn);
-                }
-            }, 100);
-        });
-
         // Create intro container
         const introContainer = document.createElement('div');
         introContainer.className = 'warrior-intro-container';
@@ -752,36 +641,15 @@ export class ClassSelection {
 
         // Function to end intro with fade out for warrior intro sound
         const endIntroWithFade = () => {
-            // Fade out the warrior intro sound
-            const fadeOutInterval = setInterval(() => {
-                if (warriorIntroSound.volume > 0.05) {
-                    warriorIntroSound.volume -= 0.05;
-                } else {
-                    warriorIntroSound.pause();
-                    warriorIntroSound.currentTime = 0;
-                    clearInterval(fadeOutInterval);
-                }
-            }, 50);
-
             // Fade out the intro container
             introContainer.style.opacity = '0';
+            // Fade out the intro sound
+            this.soundManager.fadeOutIntroSound();
             setTimeout(() => {
                 if (introContainer && introContainer.parentNode === document.body) {
                     document.body.removeChild(introContainer);
                 }
-                this.initializeGame(level1Music); // Pass the music to the game
-            }, 1000);
-        };
-
-        // Function to end intro without fading warrior intro sound
-        const endIntroWithoutFade = () => {
-            // Fade out the intro container
-            introContainer.style.opacity = '0';
-            setTimeout(() => {
-                if (introContainer && introContainer.parentNode === document.body) {
-                    document.body.removeChild(introContainer);
-                }
-                this.initializeGame(level1Music); // Pass the music to the game
+                this.initializeGame(); // Pass the music to the game
             }, 1000);
         };
 
@@ -789,24 +657,11 @@ export class ClassSelection {
         introContainer.addEventListener('click', () => {
             endIntroWithFade();
         });
-
-        // Get the duration of the warrior intro sound and use it for the timeout
-        warriorIntroSound.addEventListener('loadedmetadata', () => {
-            // Add a small buffer to ensure the sound finishes playing
-            const duration = warriorIntroSound.duration * 1000 + 500;
-            
-            // Auto-end after the sound finishes
-            setTimeout(() => {
-                if (document.body.contains(introContainer)) {
-                    endIntroWithoutFade();
-                }
-            }, duration);
-        });
     }
 
     initializeGame(level1Music) {
         // Initialize the main game with the already playing music
         const game = new Game();
-        game.initialize(this.selectedClass, this.playerDeck, level1Music);
+        game.initialize(this.selectedClass, this.playerDeck);
     }
 } 

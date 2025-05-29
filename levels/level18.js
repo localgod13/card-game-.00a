@@ -47,7 +47,7 @@ export function runLevel18(game) {
         <div style="margin-bottom: 12px; font-size: 1.1em; color: #39ff14;">Scroll Merchant</div>
         <div class="typewriter-narration" style="margin-bottom: 12px; min-height: 80px;"></div>
         <div style="display: flex; justify-content: center; gap: 10px;">
-            <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
+        <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Continue</button>
             <button style="margin-top: 8px; padding: 8px 24px; font-size: 1em; background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%); color: #b6ffb6; border: 2px solid #39ff14; border-radius: 8px; cursor: pointer; font-family: Cinzel, Times New Roman, serif; display:none;">Ask about the Master Smith</button>
         </div>
     `;
@@ -57,6 +57,11 @@ export function runLevel18(game) {
         // Check if we're showing the Garrick dialogue
         const target = dialogueBox.querySelector('.typewriter-narration');
         if (target.textContent.includes("Still no sign of Garrick")) {
+            // Fade out the scrollv2 sound using the sound manager
+            if (game.soundManager) {
+                game.soundManager.fadeOutNarration();
+            }
+            
             // Add the new quest
             game.questManager.addQuest(
                 'garricks_trail',
@@ -137,10 +142,18 @@ export function runLevel18(game) {
                 }
             }
             game.store.open(itemsForSale, playerInventory);
+            // Hide back button when store is open
+            const backBtn = document.querySelector('.merchant-back-btn');
+            if (backBtn) backBtn.style.display = 'none';
+            
             // Re-show the button after store closes
             const origClose = game.store.close.bind(game.store);
             game.store.close = () => {
                 origClose();
+                // Show back button when store is closed
+                const backBtn = document.querySelector('.merchant-back-btn');
+                if (backBtn) backBtn.style.display = 'block';
+                
                 // Only re-show the button if we're still on level 18
                 if (game.currentLevel === 18) {
                     setTimeout(() => {
@@ -176,10 +189,18 @@ export function runLevel18(game) {
                         newBuyBtn.addEventListener('click', () => {
                             newBuyBtn.remove();
                             game.store.open(itemsForSale, playerInventory);
+                            // Hide back button when store is open
+                            const backBtn = document.querySelector('.merchant-back-btn');
+                            if (backBtn) backBtn.style.display = 'none';
+                            
                             // Re-show the button after store closes
                             const origCloseInner = game.store.close.bind(game.store);
                             game.store.close = () => {
                                 origCloseInner();
+                                // Show back button when store is closed
+                                const backBtn = document.querySelector('.merchant-back-btn');
+                                if (backBtn) backBtn.style.display = 'block';
+                                
                                 if (game.currentLevel === 18) {
                                     setTimeout(() => {
                                         if (!document.querySelector('.scroll-shop-buy-btn')) {
@@ -199,6 +220,11 @@ export function runLevel18(game) {
         document.body.appendChild(buyBtn);
     };
     askBtn.onclick = () => {
+        // Play scrollv2 sound using narration system
+        if (game.soundManager) {
+            game.soundManager.playNarration('scrollv2', 0.7);
+        }
+
         const target = dialogueBox.querySelector('.typewriter-narration');
         target.textContent = "Still no sign of Garrick... It's been five days since he set out for the mountain pass. Said he'd be back in three.\"\n\n\"We're starting to get concerned. He's no stranger to danger, but disappearing like this? That's not like him. If your path leads that way, maybe see if you can find him.";
         continueBtn.style.display = 'inline-block';
@@ -207,13 +233,12 @@ export function runLevel18(game) {
         // Complete the "Speak to the Shop Keepers" quest
         game.questManager.completeQuest('shopkeepers_quest');
 
-        // Add the new "Search for Garrick" quest
-        game.questManager.addQuest({
-            title: "Search for Garrick in the Mountain Pass",
-            description: "The scroll merchant mentioned that Garrick has been missing for five days after heading to the mountain pass. Investigate his disappearance.",
-            type: "main",
-            level: 18
-        });
+        // Add the new "Search for Garrick" quest with a proper quest ID
+        game.questManager.addQuest(
+            'garricks_trail',
+            "Garrick's Trail",
+            "The scroll merchant mentioned that Garrick has been missing for five days after heading to the mountain pass. Investigate his disappearance."
+        );
     };
     document.body.appendChild(dialogueBox);
     const text = "Ink and incantation await. Browse carefully — some of these scrolls bite back.";
@@ -233,7 +258,10 @@ export function runLevel18(game) {
         } else {
             finished = true;
             continueBtn.style.display = 'inline-block';
-            askBtn.style.display = 'inline-block';
+            // Only show the ask button if the Garrick's Trail quest doesn't exist
+            if (!game.questManager.quests.has('garricks_trail')) {
+                askBtn.style.display = 'inline-block';
+            }
         }
     };
     typewriter();
@@ -244,9 +272,17 @@ export function runLevel18(game) {
             clearTimeout(timeoutId);
             target.textContent = text;
             continueBtn.style.display = 'inline-block';
-            askBtn.style.display = 'inline-block';
+            // Only show the ask button if the Garrick's Trail quest doesn't exist
+            if (!game.questManager.quests.has('garricks_trail')) {
+                askBtn.style.display = 'inline-block';
+            }
         }
     };
+
+    // Play scroll sound when dialogue box appears
+    if (game.soundManager) {
+        game.soundManager.playSound('scrollv1', 0.7);
+    }
 
     // Remove any existing back button to prevent duplicates
     const oldBackBtn = playfield ? playfield.querySelector('.merchant-back-btn') : null;
@@ -281,10 +317,16 @@ export function runLevel18(game) {
         backBtn.style.color = '#ffe6b6';
     });
     backBtn.addEventListener('click', () => {
-        // Remove the buy scrolls button if it exists
+        // Remove all UI elements
+        const dialogueBox = document.querySelector('.scroll-shop-dialogue');
+        if (dialogueBox) dialogueBox.remove();
+        
         const buyBtn = document.querySelector('.scroll-shop-buy-btn');
         if (buyBtn) buyBtn.remove();
+        
         backBtn.remove();
+        
+        // Transition to next level
         game.previousLevel = 18;
         game.currentLevel = 16;
         game.startNextLevel();

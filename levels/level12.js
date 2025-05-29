@@ -47,6 +47,11 @@ export function runLevel12(game) {
         bedBox.style.cursor = 'pointer';
     });
     bedBox.addEventListener('click', function () {
+        // Start fade out immediately when bed is clicked
+        if (game.soundManager) {
+            game.soundManager.stopMusic(true); // true for fade out
+        }
+
         // Multi-step eyes getting droopy effect
         const playfield = document.querySelector('.playfield');
         const self = this;
@@ -66,30 +71,14 @@ export function runLevel12(game) {
             // Sequence: darken, lighten, darken more, lighten, then full black
             const opacities = [0.4, 0.2, 0.7, 0.5, 1];
             let step = 0;
-            // Smooth audio fade out setup
-            let fadeInterval = null;
-            const fadeDuration = opacities.length * 600; // total ms for fade
-            const fadeSteps = 30;
-            let fadeStep = 0;
-            let initialVolume = game.levelMusic ? game.levelMusic.volume : 0;
-            if (game.levelMusic && initialVolume > 0) {
-                fadeInterval = setInterval(() => {
-                    fadeStep++;
-                    const newVolume = Math.max(0, initialVolume * (1 - fadeStep / fadeSteps));
-                    game.levelMusic.volume = newVolume;
-                    if (fadeStep >= fadeSteps) {
-                        game.levelMusic.volume = 0;
-                        game.levelMusic.pause();
-                        clearInterval(fadeInterval);
-                    }
-                }, fadeDuration / fadeSteps);
-            }
+
             // Play cricket.mp3 for the duration of the visual fade out
             let cricketAudio = new Audio('./assets/Audio/cricket.mp3');
             cricketAudio.volume = 0.7;
             cricketAudio.loop = false;
             cricketAudio.play().catch(() => {});
             game.cricketAudio = cricketAudio;
+
             function nextStep() {
                 if (step < opacities.length) {
                     void sleepOverlay.offsetWidth;
@@ -97,11 +86,6 @@ export function runLevel12(game) {
                     step++;
                     setTimeout(nextStep, 600);
                 } else {
-                    // Ensure music is fully faded out
-                    if (game.levelMusic) {
-                        game.levelMusic.volume = 0;
-                        game.levelMusic.pause();
-                    }
                     // Do NOT stop cricket.mp3 here; let it play until level 13 starts
                     setTimeout(() => {
                         sleepOverlay.remove();

@@ -1,6 +1,7 @@
 // Level 11: Innkeeper scene (town, no enemies, no player)
 export function runLevel11(game) {
     localStorage.setItem('level11_hmr_log', 'START: ' + new Date().toISOString());
+    
     // Remove player and enemy sides
     const playerSide = document.querySelector('.player-side');
     if (playerSide) playerSide.innerHTML = '';
@@ -91,14 +92,5 @@ export function runLevel11(game) {
         game.startNextLevel();
     });
     playfield.appendChild(roomBox);
-    // Play inn.mp3 when entering level 11
-    if (game.levelMusic) {
-        game.levelMusic.pause();
-        game.levelMusic.currentTime = 0;
-    }
-    game.levelMusic = new Audio('./assets/Audio/inn.mp3');
-    game.levelMusic.loop = true;
-    game.levelMusic.volume = game.musicVolume || 0.5;
-    game.levelMusic.play().catch(() => {});
     localStorage.setItem('level11_hmr_log', 'END: ' + new Date().toISOString());
 } 

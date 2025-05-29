@@ -4,7 +4,7 @@
 import { Werewolf } from '../werewolf.js';
 
 // Level 6: Werewolf intro cinematic (narrator, howl, entrance)
-export function playWerewolfIntroCinematic(game, onComplete) {
+export async function playWerewolfIntroCinematic(game, onComplete) {
     const narratorBox = document.createElement('div');
     narratorBox.className = 'narrator-box';
     narratorBox.style.position = 'fixed';
@@ -39,9 +39,25 @@ export function playWerewolfIntroCinematic(game, onComplete) {
         narratorBox.style.zIndex = '2000';
         document.body.appendChild(narratorBox);
     }
-    const narrationAudio = new Audio('./assets/Audio/level6nar.mp3');
-    narrationAudio.volume = 1;
-    narrationAudio.play().catch(() => {});
+
+    // Ensure the narration sound is loaded before playing
+    const narrationSound = game.soundManager.sounds.get('level6nar');
+    if (narrationSound) {
+        try {
+            // Wait for the sound to be loaded
+            if (narrationSound.readyState < 3) {
+                await new Promise((resolve, reject) => {
+                    narrationSound.addEventListener('canplaythrough', resolve, { once: true });
+                    narrationSound.addEventListener('error', reject, { once: true });
+                });
+            }
+            // Play narration using SoundManager
+            await game.soundManager.playNarration('level6nar', 0.75);
+        } catch (error) {
+            console.log('Error playing level 6 narration:', error);
+        }
+    }
+
     const mainMessage = 'You sense a presence lurking in the darkness beyond the trees… silent, unseen, but unmistakably there.';
     const promptHTML = `<br><span style="display:block; margin-top:16px; font-size:0.8em; color:#ccc; font-family:Arial,sans-serif;">Click this box to continue…</span>`;
     narratorBox.innerHTML = '<span class="narrator-typewriter"></span>' + promptHTML;
@@ -64,18 +80,11 @@ export function playWerewolfIntroCinematic(game, onComplete) {
         }
         typeWriter();
     }
-    narrationAudio.addEventListener('loadedmetadata', () => {
-        const duration = narrationAudio.duration * 1000;
-        const interval = Math.max(18, Math.floor(duration / mainMessage.length));
-        startTypewriter(interval);
-    });
-    setTimeout(() => {
-        if (!typewriterStarted) {
-            startTypewriter(60);
-        }
-    }, 500);
+    // Start typewriter with fixed interval
+    startTypewriter(60);
     narratorBox.addEventListener('click', () => {
-        narrationAudio.pause();
+        // Fade out narration when clicking
+        game.soundManager.fadeOutNarration();
         narratorBox.remove();
         const howl = new Audio('./assets/Audio/howl.mp3');
         howl.volume = 1;

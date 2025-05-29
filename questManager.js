@@ -144,6 +144,33 @@ export class QuestManager {
         title.style.fontSize = '24px';
         title.style.pointerEvents = 'none';
 
+        // Add Completed button
+        const completedButton = document.createElement('button');
+        completedButton.textContent = 'Completed';
+        completedButton.style.cssText = `
+            background: linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%);
+            color: #b6ffb6;
+            border: 2px solid #39ff14;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: 'MedievalSharp', cursive;
+            font-size: 14px;
+            pointer-events: auto;
+            transition: all 0.2s ease;
+        `;
+        completedButton.onmouseover = () => {
+            completedButton.style.background = 'linear-gradient(135deg, #2a3a2a 60%, #3e5d3e 100%)';
+            completedButton.style.color = '#fff6ea';
+            completedButton.style.boxShadow = '0 0 12px 2px #39ff1466';
+        };
+        completedButton.onmouseout = () => {
+            completedButton.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+            completedButton.style.color = '#b6ffb6';
+            completedButton.style.boxShadow = 'none';
+        };
+        completedButton.onclick = () => this.showCompletedQuests();
+
         const closeButton = document.createElement('button');
         closeButton.textContent = '×';
         closeButton.style.cssText = `
@@ -164,6 +191,7 @@ export class QuestManager {
         };
 
         header.appendChild(title);
+        header.appendChild(completedButton);
         this.questLogElement.appendChild(closeButton);
         this.questLogElement.appendChild(header);
 
@@ -617,6 +645,19 @@ export class QuestManager {
         
         let questsAdded = false;
         
+        // Add Lurking Silence quest at level 5
+        if (newLevel === 5) {
+            if (!this.quests.has('lurking_silence')) {
+                console.log('Level 5: Adding Lurking Silence quest');
+                this.addQuest(
+                    'lurking_silence',
+                    'Lurking Silence',
+                    'Something hunts in the dark. Make it to town before you\'re caught.'
+                );
+                questsAdded = true;
+            }
+        }
+        
         // Initialize quests based on current level
         if (newLevel >= 9) {
             // Add the Inn quest if it doesn't exist
@@ -629,28 +670,19 @@ export class QuestManager {
                 );
                 questsAdded = true;
             }
+        }
             
-            // Add the Master Smith's Note quest if it doesn't exist
-            if (!this.quests.has('shop_note_9')) {
-                console.log('Level 9+: Adding Shop Note quest');
+        // Add Shopkeeper quest at level 16
+        if (newLevel >= 16) {
+            if (!this.quests.has('shopkeepers_quest')) {
+                console.log('Level 16+: Adding Shopkeeper quest');
                 this.addQuest(
-                    'shop_note_9',
-                    'Master Smith\'s Note',
-                    'A mysterious note has appeared near the shop. It might contain important information about the Master Smith.'
+                    'shopkeepers_quest',
+                    'Speak to the Shop Keepers',
+                    'Seek out the shopkeepers—one of them may hold a clue to the Mastersmith\'s fate.'
                 );
                 questsAdded = true;
             }
-        }
-
-        // Add the shopkeepers quest when reaching level 16 if it doesn't exist
-        if (newLevel >= 16 && !this.quests.has('shopkeepers_quest')) {
-            console.log('Level 16+: Adding Shopkeepers quest');
-            this.addQuest(
-                'shopkeepers_quest',
-                'Speak to the Shop Keepers',
-                'Seek out the shopkeepers—one of them may hold a clue to the Mastersmith\'s fate.'
-            );
-            questsAdded = true;
         }
 
         // Complete the inn quest when meeting the innkeeper (level 11)
@@ -685,5 +717,128 @@ export class QuestManager {
         // Update the quest display
         this.updateQuestDisplay();
         console.log('Level Change quest updates completed');
+    }
+
+    showCompletedQuests() {
+        // Remove existing detailed view if any
+        if (this.detailedQuestView) {
+            this.detailedQuestView.remove();
+        }
+
+        // Create completed quests view
+        this.detailedQuestView = document.createElement('div');
+        this.detailedQuestView.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 600px;
+            background-image: url('./assets/Images/smedium.png');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            padding: 130px 40px 60px 40px;
+            color: #000;
+            font-family: 'MedievalSharp', cursive;
+            z-index: 5001;
+            cursor: pointer;
+        `;
+
+        // Add click event to close completed quests view
+        this.detailedQuestView.addEventListener('click', (event) => {
+            // Only close if clicking directly on the scroll background
+            if (event.target === this.detailedQuestView) {
+                this.detailedQuestView.remove();
+                this.detailedQuestView = null;
+                // Update display after closing
+                this.updateQuestDisplay();
+            }
+        });
+
+        // Create content container
+        const content = document.createElement('div');
+        content.style.cssText = `
+            height: calc(100% - 180px);
+            overflow-y: auto;
+            padding: 0 20px;
+            pointer-events: auto;
+        `;
+
+        // Add title
+        const title = document.createElement('h2');
+        title.textContent = 'Completed Quests';
+        title.style.cssText = `
+            margin: 0 0 30px 0;
+            color: #000;
+            text-align: center;
+            font-size: 24px;
+            pointer-events: none;
+        `;
+
+        content.appendChild(title);
+
+        // Get completed quests
+        const completedQuests = Array.from(this.quests.entries())
+            .filter(([_, quest]) => quest.isCompleted)
+            .sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+        if (completedQuests.length === 0) {
+            const noQuests = document.createElement('p');
+            noQuests.textContent = 'No completed quests';
+            noQuests.style.textAlign = 'center';
+            noQuests.style.color = '#000';
+            noQuests.style.fontSize = '16px';
+            noQuests.style.pointerEvents = 'none';
+            content.appendChild(noQuests);
+        } else {
+            completedQuests.forEach(([questId, quest]) => {
+                const questElement = document.createElement('div');
+                questElement.style.cssText = `
+                    margin-bottom: 20px;
+                    padding: 10px;
+                    background: rgba(57, 255, 20, 0.1);
+                    border: 1px solid #39ff14;
+                    border-radius: 8px;
+                    pointer-events: none;
+                `;
+
+                const questTitle = document.createElement('h3');
+                questTitle.textContent = quest.title;
+                questTitle.style.cssText = `
+                    margin: 0 0 8px 0;
+                    color: #000;
+                    font-size: 18px;
+                    text-decoration: line-through;
+                    pointer-events: none;
+                `;
+
+                const questDescription = document.createElement('p');
+                questDescription.textContent = quest.description;
+                questDescription.style.cssText = `
+                    margin: 0 0 8px 0;
+                    color: #000;
+                    font-size: 14px;
+                    line-height: 1.4;
+                    pointer-events: none;
+                `;
+
+                const completionDate = document.createElement('p');
+                completionDate.textContent = `Completed: ${quest.timestamp.toLocaleString()}`;
+                completionDate.style.cssText = `
+                    margin: 0;
+                    color: #666;
+                    font-size: 12px;
+                    pointer-events: none;
+                `;
+
+                questElement.appendChild(questTitle);
+                questElement.appendChild(questDescription);
+                questElement.appendChild(completionDate);
+                content.appendChild(questElement);
+            });
+        }
+
+        this.detailedQuestView.appendChild(content);
+        document.body.appendChild(this.detailedQuestView);
     }
 } 

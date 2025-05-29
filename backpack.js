@@ -95,6 +95,7 @@ export class Backpack {
         backpackContainer.appendChild(backpack);
         // Store a reference to the container for later use
         this.backpackContainer = backpackContainer;
+        this.backpackContainer.__game = this.game;
 
         // Add to discard pile instead of document body
         discardPile.parentNode.appendChild(backpackContainer);

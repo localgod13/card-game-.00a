@@ -15,6 +15,9 @@ import { runLevel14 } from './levels/level14.js';
 import { runLevel15 } from './levels/level15.js';
 import { runLevel16 } from './levels/level16.js';
 import { runLevel17 } from './levels/level17.js';
+import { runLevel18 } from './levels/level18.js';
+import { runLevel19 } from './levels/level19.js';
+import { runLevel20 } from './levels/level20.js';
 
 export class LevelManager {
     constructor(game) {
@@ -28,15 +31,25 @@ export class LevelManager {
         // Set up the new level
         this.setBackground(level);
         this.setMusicAndNarration(level);
+
+        // Create enemy-side element if it doesn't exist
+        let enemySide = document.querySelector('.enemy-side');
+        if (!enemySide) {
+            enemySide = document.createElement('div');
+            enemySide.className = 'enemy-side';
+            document.body.appendChild(enemySide);
+        }
+
+        // Spawn enemies for the level
         this.spawnEnemies(level);
 
         // Add boardsd.png and boardsw.png for level 9
         if (level === 9) {
-            // Add quest for reading the shop note
+            // Add the Inn quest
             this.game.questManager.addQuest(
-                'shop_note_9',
-                'Mysterious Shop Note',
-                'A strange note has appeared near the shop. Perhaps it contains important information?'
+                'inn_quest',
+                'Head to the Inn',
+                'Visit the local inn to rest and gather information about your journey. The innkeeper might have valuable knowledge to share.'
             );
 
             const boardsd = document.createElement('img');
@@ -72,9 +85,6 @@ export class LevelManager {
                 // Play a sound when clicked
                 this.game.soundManager.playSound('click', 0.5);
                 
-                // Complete the quest when note is read
-                this.game.questManager.completeQuest('shop_note_9');
-                
                 // Create popup container
                 const popup = document.createElement('div');
                 popup.style.position = 'fixed';
@@ -105,12 +115,18 @@ export class LevelManager {
         }
         // Add boardsd.png for level 16
         else if (level === 16) {
-            // Add quest for reading the shop note
+            console.log('Level 16: Adding Shopkeeper quest');
+            // Add the Shopkeeper quest
+            if (!this.game.questManager.quests.has('shopkeepers_quest')) {
             this.game.questManager.addQuest(
-                'shop_note_16',
-                'Shop Note in Town',
-                'There seems to be a note near the shop in town. It might be worth checking out.'
+                    'shopkeepers_quest',
+                    'Speak to the Shop Keepers',
+                    'Seek out the shopkeepers—one of them may hold a clue to the Mastersmith\'s fate.'
             );
+                console.log('Shopkeeper quest added successfully');
+            } else {
+                console.log('Shopkeeper quest already exists');
+            }
 
             const boardsd = document.createElement('img');
             boardsd.className = 'boardsd-image';
@@ -144,9 +160,6 @@ export class LevelManager {
             shopnote2.addEventListener('click', () => {
                 // Play a sound when clicked
                 this.game.soundManager.playSound('click', 0.5);
-                
-                // Complete the quest when note is read
-                this.game.questManager.completeQuest('shop_note_16');
                 
                 // Create popup container
                 const popup = document.createElement('div');
@@ -184,7 +197,7 @@ export class LevelManager {
         existingRects.forEach(rect => rect.remove());
         
         // Clear any existing buttons
-        const existingButtons = document.querySelectorAll('.enter-town-btn, .continue-btn, .continue-deeper-btn');
+        const existingButtons = document.querySelectorAll('.enter-town-btn, .continue-btn, .continue-deeper-btn, button[textContent="Back to Town"]');
         existingButtons.forEach(btn => btn.remove());
         
         // Clear any existing narration elements
@@ -202,6 +215,30 @@ export class LevelManager {
         if (existingBoardsw) existingBoardsw.remove();
         const existingShopnote2 = document.querySelector('.shopnote2-image');
         if (existingShopnote2) existingShopnote2.remove();
+
+        // Clear Mountain Pass and Embervault text
+        document.querySelectorAll('.mountain-pass-title, .embervault-title').forEach(el => el.remove());
+
+        // Clear enemy-side element
+        const enemySide = document.querySelector('.enemy-side');
+        if (enemySide) {
+            while (enemySide.firstChild) {
+                enemySide.removeChild(enemySide.firstChild);
+            }
+        }
+
+        // Clean up enemy animations and references
+        if (this.game.enemies) {
+            this.game.enemies.forEach(enemy => {
+                if (enemy.animationInterval) {
+                    clearInterval(enemy.animationInterval);
+                }
+                if (enemy.element && enemy.element.parentNode) {
+                    enemy.element.parentNode.removeChild(enemy.element);
+                }
+            });
+            this.game.enemies = []; // Clear the enemies array
+        }
     }
 
     setBackground(level) {
@@ -275,46 +312,48 @@ export class LevelManager {
             playfield.style.backgroundSize = 'cover';
             playfield.style.backgroundPosition = 'center';
             playfield.style.backgroundRepeat = 'no-repeat';
+        } else if (level === 18) {
+            playfield.style.backgroundImage = "url('./assets/Images/smerch.png')";
+            playfield.style.backgroundSize = 'cover';
+            playfield.style.backgroundPosition = 'center';
+            playfield.style.backgroundRepeat = 'no-repeat';
+        } else if (level === 19) {
+            playfield.style.backgroundImage = "url('./assets/Images/leavingtown.png')";
+            playfield.style.backgroundSize = 'cover';
+            playfield.style.backgroundPosition = 'center';
+            playfield.style.backgroundRepeat = 'no-repeat';
+        } else if (level === 20) {
+            playfield.style.backgroundImage = "url('./assets/Images/level20.png')";
+            playfield.style.backgroundSize = 'cover';
+            playfield.style.backgroundPosition = 'center';
+            playfield.style.backgroundRepeat = 'no-repeat';
         }
     }
 
     setMusicAndNarration(level) {
-        // Stop any existing level music
-        if (this.game.levelMusic) {
-            this.game.levelMusic.pause();
-            this.game.levelMusic.currentTime = 0;
-        }
-
         if (level === 5) {
-            if (this.game.playerClass === 'mage') {
-                this.game.soundManager.playSound('forestnar', 0.5);
-            } else if (this.game.playerClass === 'warrior') {
-                this.game.soundManager.playSound('warforest', 0.5);
-            }
             // Start forestmusic.mp3 as new background music
-            this.game.levelMusic = new Audio('./assets/Audio/forestmusic.mp3');
-            this.game.levelMusic.loop = true;
-            this.game.levelMusic.volume = 0;
-            this.game.levelMusic.play().then(() => {
-                // Fade in music
-                const targetVolume = this.game.musicVolume || 0.5;
-                const fadeIn = setInterval(() => {
-                    if (this.game.levelMusic.volume < targetVolume - 0.05) {
-                        this.game.levelMusic.volume += 0.05;
-                    } else {
-                        this.game.levelMusic.volume = targetVolume;
-                        clearInterval(fadeIn);
-                    }
-                }, 100);
-            }).catch(error => {
-                console.log('Autoplay prevented:', error);
-                const startMusic = () => {
-                    this.game.levelMusic.play();
-                    document.removeEventListener('click', startMusic);
+            this.game.soundManager.playMusic('./assets/Audio/forestmusic.mp3', 0.5, true);
+            
+            // Play appropriate narration based on player class
+            if (this.game.playerClass === 'mage') {
+                this.game.soundManager.playNarration('forestnar', 0.5);
+            } else if (this.game.playerClass === 'warrior') {
+                this.game.soundManager.playNarration('warforest', 0.5);
+            }
+            
+            // Add click handler to fade out narration
+            const playfield = document.querySelector('.playfield');
+            if (playfield) {
+                const clickHandler = () => {
+                    this.game.soundManager.fadeOutNarration();
+                    playfield.removeEventListener('click', clickHandler);
                 };
-                document.addEventListener('click', startMusic);
-            });
+                playfield.addEventListener('click', clickHandler);
+            }
         } else if (level === 8) {
+            // Let existing forest music continue playing
+            // Play forest exit narration and show enter town button
             const audio = this.game.soundManager.sounds.get('forestexit');
             if (audio) {
                 audio.volume = 0.7;
@@ -327,34 +366,223 @@ export class LevelManager {
                 setTimeout(() => this.game.showEnterTownButton(), 3000);
             }
         } else if (level === 9) {
-            // Start nighttown.mp3 as new background music
-            this.game.levelMusic = new Audio('./assets/Audio/nighttown.mp3');
-            this.game.levelMusic.loop = true;
-            this.game.levelMusic.volume = this.game.musicVolume || 0.5;
-            this.game.levelMusic.play().catch(error => {
-                console.log('Autoplay prevented:', error);
-                const startMusic = () => {
-                    this.game.levelMusic.play();
-                    document.removeEventListener('click', startMusic);
-                };
-                document.addEventListener('click', startMusic);
-            });
+            // Stop any existing music
+            this.game.soundManager.stopMusic(false);
             
-            // Play townnar.mp3 narration (once, not looping) ONLY if not coming from level 10
+            // Start nighttown.mp3 as new background music
+            const nighttownMusic = this.game.soundManager.sounds.get('nighttown');
+            if (nighttownMusic) {
+                nighttownMusic.loop = true;
+                nighttownMusic.volume = 0.5;
+                nighttownMusic.play().catch(() => {});
+                this.game.soundManager.currentMusic = nighttownMusic;
+            }
+            
+            // Handle the narration
             if (this.game.previousLevel !== 10) {
-                const narration = new Audio('./assets/Audio/townnar.mp3');
-                narration.volume = 0.7;
-                narration.play().catch(error => {
-                    console.log('Autoplay prevented:', error);
-                    const startNarration = () => {
-                        narration.play();
-                        document.removeEventListener('click', startNarration);
-                    };
-                    document.addEventListener('click', startNarration);
-                });
+                // Disable all interactions
+                const gameScene = document.querySelector('.game-scene');
+                if (gameScene) {
+                    gameScene.style.pointerEvents = 'none';
+                }
+                
+                // Play the narration and re-enable interactions when it's done
+                const townNarration = this.game.soundManager.sounds.get('townnar');
+                if (townNarration) {
+                    townNarration.volume = 0.7;
+                    townNarration.currentTime = 0;
+                    townNarration.play().then(() => {
+                        townNarration.onended = () => {
+                            // Re-enable interactions when narration is done
+                            if (gameScene) {
+                                gameScene.style.pointerEvents = 'auto';
+                            }
+                        };
+                    }).catch(() => {
+                        // If autoplay is prevented, re-enable interactions
+                        if (gameScene) {
+                            gameScene.style.pointerEvents = 'auto';
+                        }
+                    });
+                } else {
+                    // If narration fails to load, re-enable interactions
+                    if (gameScene) {
+                        gameScene.style.pointerEvents = 'auto';
+                    }
+                }
+            }
+        } else if (level === 10) {
+            // No music changes needed for level 10
+        } else if (level === 11) {
+            // Stop any existing music immediately
+            this.game.soundManager.stopMusic(false);
+            // Play inn.mp3 as new background music
+            this.game.soundManager.playMusic('./assets/Audio/inn.mp3', 0.5, true);
+        } else if (level === 15) {
+            // If coming from level 19, stop mountain.mp3 and play townday.mp3
+            if (this.game.previousLevel === 19) {
+                // Stop mountain.mp3
+                const mountainMusic = this.game.soundManager.sounds.get('mountain');
+                if (mountainMusic) {
+                    mountainMusic.pause();
+                    mountainMusic.currentTime = 0;
+                }
+                
+                // Stop any other music that might be playing
+                this.game.soundManager.stopMusic(false);
+                
+                // Clear the current music reference
+                this.game.soundManager.currentMusic = null;
+                
+                // Start townday.mp3 as new background music
+                const towndayMusic = this.game.soundManager.sounds.get('townday');
+                if (towndayMusic) {
+                    towndayMusic.loop = true;
+                    towndayMusic.volume = 0.5;
+                    towndayMusic.play().catch(() => {});
+                    this.game.soundManager.currentMusic = towndayMusic;
+                }
             }
         } else if (level === 17) {
             this.game.showLevel17Narration();
+        } else if (level === 19) {
+            // Force stop all music
+            this.game.soundManager.stopMusic(false);
+            
+            // Explicitly stop and reset townday.mp3
+            const towndayMusic = this.game.soundManager.sounds.get('townday');
+            if (towndayMusic) {
+                towndayMusic.pause();
+                towndayMusic.currentTime = 0;
+                towndayMusic.loop = false;
+            }
+            
+            // Clear any existing music reference
+            this.game.soundManager.currentMusic = null;
+            
+            // Small delay before starting new music
+            setTimeout(() => {
+                this.game.soundManager.playMusic('./assets/Audio/mountain.mp3', 0.5, true);
+            }, 100);
+
+            // Play mountainnar.mp3 after 1 second
+            setTimeout(() => {
+                const mountainNarration = this.game.soundManager.sounds.get('mountainnar');
+                if (mountainNarration) {
+                    mountainNarration.volume = 0.7;
+                    mountainNarration.currentTime = 0;
+                    mountainNarration.play().then(() => {
+                        mountainNarration.onended = () => {
+                            // Function to create and position the continue button
+                            const createContinueButton = () => {
+                                // Remove any existing button
+                                const existingBtn = document.querySelector('.level19-continue-btn');
+                                if (existingBtn) {
+                                    existingBtn.remove();
+                                }
+
+                                const continueBtn = document.createElement('button');
+                                continueBtn.textContent = 'Continue';
+                                continueBtn.className = 'level19-continue-btn';
+                                
+                                // Apply styles directly
+                                Object.assign(continueBtn.style, {
+                                    position: 'absolute',
+                                    bottom: '250px',
+                                    left: '75%',
+                                    transform: 'translateX(-50%)',
+                                    padding: '12px 24px',
+                                    fontSize: '1.2em',
+                                    background: 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)',
+                                    color: '#b6ffb6',
+                                    border: '2px solid #39ff14',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontFamily: 'Cinzel, Times New Roman, serif',
+                                    boxShadow: '0 0 16px 4px #39ff1466, 0 4px 16px rgba(0,0,0,0.7)',
+                                    zIndex: '1000'
+                                });
+
+                                // Add hover effects
+                                continueBtn.addEventListener('mouseenter', () => {
+                                    continueBtn.style.boxShadow = '0 0 24px 8px #39ff14cc, 0 4px 24px rgba(0,0,0,0.8)';
+                                    continueBtn.style.background = 'linear-gradient(135deg, #223322 60%, #3e6d3e 100%)';
+                                    continueBtn.style.color = '#eaffea';
+                                });
+                                
+                                continueBtn.addEventListener('mouseleave', () => {
+                                    continueBtn.style.boxShadow = '0 0 16px 4px #39ff1466, 0 4px 16px rgba(0,0,0,0.7)';
+                                    continueBtn.style.background = 'linear-gradient(135deg, #1a2a1a 60%, #2e4d2e 100%)';
+                                    continueBtn.style.color = '#b6ffb6';
+                                });
+                                
+                                // Add click handler to transition to level 20
+                                continueBtn.addEventListener('click', () => {
+                                    continueBtn.remove();
+                                    
+                                    // Get the mage element
+                                    const mage = document.querySelector('.player-character');
+                                    if (mage) {
+                                        // Start the run animation
+                                        this.game.playerCharacter.playRunAnimation();
+                                        
+                                        // Play running sound
+                                        const runningSound = this.game.soundManager.sounds.get('running');
+                                        if (runningSound) {
+                                            runningSound.currentTime = 0;
+                                            runningSound.volume = 0.5;
+                                            runningSound.loop = true;
+                                            runningSound.play().catch(() => {});
+                                        }
+                                        
+                                        // Animate mage moving right
+                                        mage.style.transition = 'transform 4s ease-out';
+                                        mage.style.transform = 'translateX(1200px)';
+                                        
+                                        // Wait for animation to complete before transitioning
+                                        setTimeout(() => {
+                                            // Stop running sound
+                                            if (runningSound) {
+                                                runningSound.pause();
+                                                runningSound.currentTime = 0;
+                                            }
+                                            
+                                            // Play level20.mp3
+                                            const level20Music = this.game.soundManager.sounds.get('level20');
+                                            if (level20Music) {
+                                                level20Music.volume = 0.5;
+                                                level20Music.currentTime = 0;
+                                                level20Music.play().catch(() => {});
+                                            }
+                                            
+                                            this.game.currentLevel = 20;
+                                            this.game.startNextLevel();
+                                        }, 4000);
+                                    } else {
+                                        // If mage element not found, transition immediately
+                                        this.game.currentLevel = 20;
+                                        this.game.startNextLevel();
+                                    }
+                                });
+
+                                const playfield = document.querySelector('.playfield');
+                                if (playfield) {
+                                    playfield.appendChild(continueBtn);
+                                } else {
+                                    document.body.appendChild(continueBtn);
+                                }
+
+                                return continueBtn;
+                            };
+
+                            // Create the button
+                            createContinueButton();
+                        };
+                    }).catch(() => {
+                        console.error('Error playing mountain narration');
+                    });
+                }
+            }, 1000);
         }
     }
 
@@ -393,13 +621,30 @@ export class LevelManager {
             runLevel16(this.game);
         } else if (level === 17) {
             runLevel17(this.game);
+        } else if (level === 18) {
+            runLevel18(this.game);
+        } else if (level === 19) {
+            runLevel19(this.game);
+        } else if (level === 20) {
+            runLevel20(this.game);
         } else {
             // Default: no enemies
         }
     }
 
     handleLevelTransition() {
-        // Replicates showLevelTransition from Game
+        // Remove any existing level transition overlay
+        const existingOverlay = document.querySelector('.level-transition-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+
+        // Remove Mountain Pass and Embervault text if transitioning from level 20
+        if (this.game.currentLevel === 20) {
+            document.querySelectorAll('.mountain-pass-title, .embervault-title').forEach(el => el.remove());
+        }
+
+        // Create the overlay
         const overlay = document.createElement('div');
         overlay.className = 'level-transition-overlay';
         overlay.style.position = 'fixed';

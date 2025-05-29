@@ -5,6 +5,13 @@ import { Executioner } from '../executioner.js';
 // ==========================
 
 export function runLevel1(game) {
+    // Add the Graveyard Shift quest
+    game.questManager.addQuest(
+        'graveyard_shift',
+        'The Graveyard Shift',
+        'Escape the cursed graveyard before it claims you too'
+    );
+
     // Level 1: 1 Executioner
     // Initialize player character and UI (if not already handled by main game)
     const playerSide = document.querySelector('.player-side');
