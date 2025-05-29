@@ -71,7 +71,10 @@ export class Preloader {
                 './assets/Images/fireball.png',
                 './assets/Images/Blaze.png',
                 './assets/Images/firebg.png',
-                './assets/Images/tscreen.png'
+                './assets/Images/tscreen.png',
+                './assets/Images/leavingtown.png',
+                './assets/Images/mageboots48.png',
+                './assets/Images/doorcursor.png'
             ],
             audio: [
                 './assets/Audio/tsmusic.mp3',
