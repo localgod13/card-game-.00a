@@ -104,7 +104,7 @@ export function runLevel10(game) {
     innBox.style.background = 'rgba(80, 200, 255, 0.25)';
     innBox.style.border = '2px solid #39ff14';
     innBox.style.borderRadius = '12px';
-    innBox.style.cursor = 'pointer';
+    innBox.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
     innBox.style.zIndex = '3000';
     innBox.title = 'Inn';
     innBox.style.display = 'flex';
@@ -118,7 +118,7 @@ export function runLevel10(game) {
     innBox.addEventListener('mouseenter', () => {
         innBox.style.background = 'rgba(80, 255, 180, 0.35)';
         innBox.style.borderColor = '#fff';
-        innBox.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+        innBox.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
     });
     innBox.addEventListener('mouseleave', () => {
         innBox.style.background = 'rgba(80, 200, 255, 0.25)';
@@ -141,7 +141,7 @@ export function runLevel10(game) {
     backBox.style.background = 'rgba(80, 200, 255, 0.25)';
     backBox.style.border = '2px solid #39ff14';
     backBox.style.borderRadius = '12px';
-    backBox.style.cursor = 'pointer';
+    backBox.style.cursor = `url("${game.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
     backBox.style.zIndex = '3000';
     backBox.title = 'Back to Town';
     backBox.style.display = 'flex';
@@ -155,7 +155,7 @@ export function runLevel10(game) {
     backBox.addEventListener('mouseenter', () => {
         backBox.style.background = 'rgba(80, 255, 180, 0.35)';
         backBox.style.borderColor = '#fff';
-        backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+        backBox.style.cursor = `url("${game.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
     });
     backBox.addEventListener('mouseleave', () => {
         backBox.style.background = 'rgba(80, 200, 255, 0.25)';

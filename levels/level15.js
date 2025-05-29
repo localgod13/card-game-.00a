@@ -110,7 +110,7 @@ export function runLevel15(game) {
         innDoor.style.background = 'rgba(80, 200, 255, 0.25)';
         innDoor.style.border = '2px solid #39ff14';
         innDoor.style.borderRadius = '12px';
-        innDoor.style.cursor = 'pointer';
+        innDoor.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
         innDoor.style.zIndex = '3000';
         innDoor.title = 'Inn Door';
         innDoor.style.display = 'flex';
@@ -126,7 +126,7 @@ export function runLevel15(game) {
         innDoor.addEventListener('mouseenter', () => {
             innDoor.style.background = 'rgba(80, 255, 180, 0.35)';
             innDoor.style.borderColor = '#fff';
-            innDoor.style.cursor = 'url("/assets/Images/doorcursor.png") 24 24, pointer';
+            innDoor.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
         });
         innDoor.addEventListener('mouseleave', () => {
             innDoor.style.background = 'rgba(80, 200, 255, 0.25)';
@@ -150,7 +150,7 @@ export function runLevel15(game) {
         backBox.style.background = 'rgba(80, 200, 255, 0.25)';
         backBox.style.border = '2px solid #39ff14';
         backBox.style.borderRadius = '12px';
-        backBox.style.cursor = 'pointer';
+        backBox.style.cursor = `url("${game.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
         backBox.style.zIndex = '3000';
         backBox.title = 'Back to Town';
         backBox.style.display = 'flex';
@@ -166,7 +166,7 @@ export function runLevel15(game) {
         backBox.addEventListener('mouseenter', () => {
             backBox.style.background = 'rgba(80, 255, 180, 0.35)';
             backBox.style.borderColor = '#fff';
-            backBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+            backBox.style.cursor = `url("${game.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
         });
         backBox.addEventListener('mouseleave', () => {
             backBox.style.background = 'rgba(80, 200, 255, 0.25)';
@@ -191,7 +191,7 @@ export function runLevel15(game) {
         leaveTownBox.style.background = 'rgba(80, 200, 255, 0.25)';
         leaveTownBox.style.border = '2px solid #39ff14';
         leaveTownBox.style.borderRadius = '12px';
-        leaveTownBox.style.cursor = 'pointer';
+        leaveTownBox.style.cursor = `url("${game.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
         leaveTownBox.style.zIndex = '3000';
         leaveTownBox.title = 'Leave Town';
         leaveTownBox.style.display = 'flex';
@@ -207,7 +207,7 @@ export function runLevel15(game) {
         leaveTownBox.addEventListener('mouseenter', () => {
             leaveTownBox.style.background = 'rgba(80, 255, 180, 0.35)';
             leaveTownBox.style.borderColor = '#fff';
-            leaveTownBox.style.cursor = 'url("/assets/Images/mageboots48.png") 24 40, pointer';
+            leaveTownBox.style.cursor = `url("${game.baseUrl}/assets/Images/mageboots48.png") 24 40, pointer`;
         });
         leaveTownBox.addEventListener('mouseleave', () => {
             leaveTownBox.style.background = 'rgba(80, 200, 255, 0.25)';

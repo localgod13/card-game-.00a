@@ -57,7 +57,7 @@ export function runLevel11(game) {
     roomBox.style.background = 'rgba(80, 200, 255, 0.25)';
     roomBox.style.border = '2px solid #39ff14';
     roomBox.style.borderRadius = '12px';
-    roomBox.style.cursor = 'pointer';
+    roomBox.style.cursor = `url("${game.baseUrl}/assets/Images/doorcursor.png") 24 24, pointer`;
     roomBox.style.zIndex = '3000';
     roomBox.title = 'Room';
     roomBox.style.display = 'flex';
